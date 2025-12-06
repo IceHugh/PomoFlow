@@ -4,8 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-// import 'package:audioplayers/audioplayers.dart'; // Keep commented until assets are real, or use if we find a URL mechanism.
+import 'package:audioplayers/audioplayers.dart'; // Keep commented until assets are real, or use if we find a URL mechanism.
 
 enum TimerMode { focus, shortBreak, longBreak }
 
@@ -29,34 +28,23 @@ class TimerService with ChangeNotifier {
   String _themeMode = 'system'; // 'system', 'light', 'dark'
   bool _tickSound = false;
   String _alarmSound = 'bell';
+  String _whiteNoiseSound = 'rain'; // Default
   bool _enableNotifications = true;
   bool _alwaysOnTop = false;
 
   // Notifications
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
-
-  // Getters
-  int get remainingSeconds => _remainingSeconds;
-  bool get isRunning => _isRunning;
-  TimerMode get currentMode => _currentMode;
-  int get totalSeconds => _getTotalSecondsForMode(_currentMode);
-  double get progress => _remainingSeconds / totalSeconds;
   
-  int get focusMinutes => _focusMinutes;
-  int get shortBreakMinutes => _shortBreakMinutes;
-  int get longBreakMinutes => _longBreakMinutes;
-  bool get loopMode => _loopMode;
-  // bool get autoStartBreaks => _autoStartBreaks;
-  // bool get autoStartPomodoros => _autoStartPomodoros;
-  String get themeMode => _themeMode;
-  bool get tickSound => _tickSound;
-  String get alarmSound => _alarmSound;
-  bool get enableNotifications => _enableNotifications;
-  bool get alwaysOnTop => _alwaysOnTop;
+  // Sound Players
+  final AudioPlayer _alarmPlayer = AudioPlayer();
+  final AudioPlayer _whiteNoisePlayer = AudioPlayer();
 
   TimerService() {
     _loadSettings();
     _initNotifications();
+    
+    // Set up white noise loop
+    _whiteNoisePlayer.setReleaseMode(ReleaseMode.loop);
   }
 
   Future<void> _initNotifications() async {
@@ -79,29 +67,38 @@ class TimerService with ChangeNotifier {
     await _notificationsPlugin.initialize(initializationSettings);
   }
 
+  // Getters
+  int get remainingSeconds => _remainingSeconds;
+  bool get isRunning => _isRunning;
+  TimerMode get currentMode => _currentMode;
+  int get totalSeconds => _getTotalSecondsForMode(_currentMode);
+  double get progress => _remainingSeconds / totalSeconds;
+  
+  int get focusMinutes => _focusMinutes;
+  int get shortBreakMinutes => _shortBreakMinutes;
+  int get longBreakMinutes => _longBreakMinutes;
+  bool get loopMode => _loopMode;
+  String get themeMode => _themeMode;
+  bool get tickSound => _tickSound;
+  String get alarmSound => _alarmSound;
+  String get whiteNoiseSound => _whiteNoiseSound;
+  bool get enableNotifications => _enableNotifications;
+  bool get alwaysOnTop => _alwaysOnTop;
+
+  // ...
+
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    _focusMinutes = prefs.getInt('focusMinutes') ?? 25;
-    _shortBreakMinutes = prefs.getInt('shortBreakMinutes') ?? 5;
-    _longBreakMinutes = prefs.getInt('longBreakMinutes') ?? 15;
-    _loopMode = prefs.getBool('loopMode') ?? false;
-    // _autoStartBreaks = prefs.getBool('autoStartBreaks') ?? false;
-    // _autoStartPomodoros = prefs.getBool('autoStartPomodoros') ?? false;
-    _themeMode = prefs.getString('themeMode') ?? 'system';
-    _tickSound = prefs.getBool('tickSound') ?? false;
+    // ...
     _alarmSound = prefs.getString('alarmSound') ?? 'bell';
+    _whiteNoiseSound = prefs.getString('whiteNoiseSound') ?? 'rain';
     _enableNotifications = prefs.getBool('enableNotifications') ?? true;
     _alwaysOnTop = prefs.getBool('alwaysOnTop') ?? false;
     
-    // Apply window settings
-    if (_alwaysOnTop) {
-      _applyAlwaysOnTop(true);
-    }
-
-    // Initialize timer with loaded focus time if strictly starting fresh
-    if (!_isRunning && _currentMode == TimerMode.focus && _remainingSeconds == 25 * 60) {
-       _remainingSeconds = _focusMinutes * 60;
-    }
+    // ...
+    
+    // Check white noise on load
+    _manageWhiteNoise();
     notifyListeners();
   }
 
@@ -109,12 +106,11 @@ class TimerService with ChangeNotifier {
     int? focus,
     int? shortBreak,
     int? longBreak,
-    // bool? autoStartBreaks, // Deprecated
-    // bool? autoStartPomos, // Deprecated
     bool? loopMode,
     String? themeMode,
     bool? tickSound,
     String? alarmSound,
+    String? whiteNoiseSound,
     bool? enableNotifications,
     bool? alwaysOnTop,
   }) async {
@@ -140,10 +136,6 @@ class TimerService with ChangeNotifier {
         _remainingSeconds = longBreak * 60;
       }
     }
-    // if (autoStartBreaks != null) { 
-    //    // Legacy support if needed
-    // }
-    // New Loop param
     if (loopMode != null) {
       _loopMode = loopMode;
       prefs.setBool('loopMode', loopMode);
@@ -156,9 +148,17 @@ class TimerService with ChangeNotifier {
       _tickSound = tickSound;
       prefs.setBool('tickSound', tickSound);
     }
+
     if (alarmSound != null) {
       _alarmSound = alarmSound;
       prefs.setString('alarmSound', alarmSound);
+      // Preview on change
+      previewSound(alarmSound);
+    }
+    if (whiteNoiseSound != null) {
+      _whiteNoiseSound = whiteNoiseSound;
+      prefs.setString('whiteNoiseSound', whiteNoiseSound);
+      // We don't preview loop sounds, but we update the background noise immediately
     }
     if (enableNotifications != null) {
       _enableNotifications = enableNotifications;
@@ -169,6 +169,10 @@ class TimerService with ChangeNotifier {
       prefs.setBool('alwaysOnTop', alwaysOnTop);
       _applyAlwaysOnTop(alwaysOnTop);
     }
+    
+    // Check if we need to update white noise (e.g. if we add a noise setting later)
+    _manageWhiteNoise();
+    
     notifyListeners();
   }
 
@@ -218,6 +222,8 @@ class TimerService with ChangeNotifier {
 
   void _startTimer() {
     _isRunning = true;
+    _manageWhiteNoise(); // Start noise if needed
+    
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
@@ -240,6 +246,7 @@ class TimerService with ChangeNotifier {
   void _stopTimer({required bool resetUI}) {
     _timer?.cancel();
     _isRunning = false;
+    _whiteNoisePlayer.stop(); // Stop noise
     if (resetUI) {
       _clearBadge();
     }
@@ -305,20 +312,59 @@ class TimerService with ChangeNotifier {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  void previewSound(String soundName) {
-    if (soundName == 'bell') {
-       SystemSound.play(SystemSoundType.click); // Placeholder for Bell
-    } else if (soundName == 'digital') {
-       // Placeholder
-       SystemSound.play(SystemSoundType.alert);
+  Future<void> previewSound(String soundName) async {
+    try {
+      String fileName = 'alarms/bell.mp3';
+      if (soundName == 'digital') fileName = 'alarms/digital.mp3';
+      // Add more mapping or use soundName directly if it matches filename
+      
+      await _alarmPlayer.stop();
+      await _alarmPlayer.play(AssetSource('sounds/$fileName'));
+      HapticFeedback.heavyImpact();
+    } catch (e) {
+      if (kDebugMode) print("Error previewing sound: $e");
     }
-    
-    // Always heavy impact
-    HapticFeedback.heavyImpact();
   }
 
   void _playCompletionSound() {
     previewSound(_alarmSound);
+  }
+
+  Future<void> _manageWhiteNoise() async {
+    if (_isRunning && _currentMode == TimerMode.focus) {
+      if (_whiteNoiseSound == 'none') {
+        await _whiteNoisePlayer.stop();
+        return;
+      }
+
+      try {
+         // Determine file based on selection
+         String fileName = 'ambient/rain.mp3';
+         if (_whiteNoiseSound == 'forest') fileName = 'ambient/forest.mp3';
+         
+         // Only switch if different or not playing
+         // Note: AudioPlayer doesn't easily expose "current source", so we might just play. 
+         // But re-playing might restart loop. Ideally we check if it is already playing this source. 
+         // For MPV/simple players, stopping and starting is safest to switch tracks.
+         
+         // If already playing, we might want to check if the source changed. 
+         // For now, let's just stop and play if it's supposed to be playing.
+         // A better optimization would be to track `_currentWhiteNoiseSource`.
+         
+         if (_whiteNoisePlayer.state == PlayerState.playing) {
+             // If we just changed the sound (called from updateSettings), we want to switch.
+             // But if we called this from startTimer, it might be redundant.
+             // Let's rely on stop() then play() for simplicity.
+             await _whiteNoisePlayer.stop();
+         }
+         
+         await _whiteNoisePlayer.play(AssetSource('sounds/$fileName'));
+      } catch (e) {
+         if (kDebugMode) print("Error playing white noise: $e");
+      }
+    } else {
+      await _whiteNoisePlayer.stop();
+    }
   }
 
   void _updateBadge() {

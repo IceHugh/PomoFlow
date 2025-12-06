@@ -118,6 +118,62 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+
+  void _showWhiteNoisePicker(BuildContext context, TimerService timerService, Function(String) onChanged) {
+    final sounds = ['rain', 'forest', 'none'];
+    final soundNames = {'rain': 'Rain', 'forest': 'Forest', 'none': 'None'};
+    
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => Container(
+        height: 250,
+        padding: const EdgeInsets.only(top: 6.0),
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    child: const Text('Cancel'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Text('Focus Sound', style: TextStyle(fontWeight: FontWeight.w600)),
+                  CupertinoButton(
+                    child: const Text('Done'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CupertinoPicker(
+                  magnification: 1.22,
+                  squeeze: 1.2,
+                  useMagnifier: true,
+                  itemExtent: 32,
+                  scrollController: FixedExtentScrollController(
+                    initialItem: sounds.indexOf(timerService.whiteNoiseSound) != -1 ? sounds.indexOf(timerService.whiteNoiseSound) : 0,
+                  ),
+                  onSelectedItemChanged: (int index) {
+                    final selectedSound = sounds[index];
+                    onChanged(selectedSound);
+                    // No preview for white noise loop, it just plays if timer is running
+                  },
+                  children: sounds.map((s) => Center(child: Text(soundNames[s]!))).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(BuildContext context, String title) {
     final isDarkMode = CupertinoTheme.brightnessOf(context) == Brightness.dark;
     return Padding(
@@ -369,6 +425,19 @@ class SettingsPage extends StatelessWidget {
                                 context,
                                 timerService,
                                 (val) => timerService.updateSettings(alarmSound: val),
+                              ),
+                            ),
+                            const Divider(height: 1, indent: 60, color: Colors.black12),
+                            _buildGlassTile(
+                              context: context,
+                              leading: _buildIcon(CupertinoIcons.music_note_2, CupertinoColors.systemPurple),
+                              title: const Text('Focus Sound'),
+                              additionalInfo: Text(timerService.whiteNoiseSound.toUpperCase()),
+                              trailing: const Icon(CupertinoIcons.chevron_forward, size: 18, color: CupertinoColors.systemGrey3),
+                              onTap: () => _showWhiteNoisePicker(
+                                context,
+                                timerService,
+                                (val) => timerService.updateSettings(whiteNoiseSound: val),
                               ),
                             ),
                             const Divider(height: 1, indent: 60, color: Colors.black12),

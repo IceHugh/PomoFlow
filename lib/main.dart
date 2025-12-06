@@ -15,7 +15,7 @@ void main() async {
       minimumSize: Size(400, 600),
       maximumSize: Size(400, 600), // Fix size
       center: true,
-      title: 'Flow',
+      title: 'PomoFlow',
       backgroundColor: CupertinoColors.transparent,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.hidden, // Custom look
@@ -52,7 +52,7 @@ class MyApp extends StatelessWidget {
         }
 
         return CupertinoApp(
-          title: 'Flow',
+          title: 'PomoFlow',
           theme: CupertinoThemeData(
             primaryColor: CupertinoColors.activeBlue,
             brightness: brightness, 
