@@ -37,8 +37,12 @@ jobs:
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      - name: Extract Version
+        id: extract_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define=APP_VERSION=${{ env.VERSION }}
         env:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -50,36 +54,52 @@ jobs:
         with:
           files: build/app/outputs/flutter-apk/app-release.apk
 
-  build-macos:
-    name: macOS Build
+  build-apple:
+    name: Apple Build (macOS & iOS)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+      
+      # Shared Setup
       - name: Enable macOS Desktop
         run: flutter config --enable-macos-desktop
       - name: Cache Pub Dependencies
         uses: actions/cache@v3
         with:
           path: ~/.pub-cache
-          key: macos-pub-${{ hashFiles('**/pubspec.lock') }}
+          key: apple-pub-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
-            macos-pub-
+            apple-pub-
       - name: Get Dependencies
         run: flutter pub get
+      
+      # macOS Build
       - name: Build macOS App
         run: flutter build macos --release
       - name: Package macOS App
         run: |
           cd build/macos/Build/Products/Release
           zip -r PomoFlow-macOS.zip PomoFlow.app
-      - name: Release macOS App
+
+      # iOS Build
+      - name: Build iOS App
+        run: flutter build ios --release --no-codesign
+      - name: Package iOS App
+        run: |
+          cd build/ios/iphoneos
+          zip -r PomoFlow-iOS-Unsigned.zip Runner.app
+
+      # Unified Release
+      - name: Release Apple Assets
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: build/macos/Build/Products/Release/PomoFlow-macOS.zip
+          files: |
+            build/macos/Build/Products/Release/PomoFlow-macOS.zip
+            build/ios/iphoneos/PomoFlow-iOS-Unsigned.zip
 
   build-windows:
     name: Windows Build
@@ -111,31 +131,3 @@ jobs:
         with:
           files: PomoFlow-Windows.zip
 
-  build-ios:
-    name: iOS Build (Unsigned)
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-      - name: Cache Pub Dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.pub-cache
-          key: ios-pub-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ios-pub-
-      - name: Get Dependencies
-        run: flutter pub get
-      - name: Build iOS App
-        run: flutter build ios --release --no-codesign
-      - name: Package iOS App
-        run: |
-          cd build/ios/iphoneos
-          zip -r PomoFlow-iOS-Unsigned.zip Runner.app
-      - name: Release iOS App
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: build/ios/iphoneos/PomoFlow-iOS-Unsigned.zip

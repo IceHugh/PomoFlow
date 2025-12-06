@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'pomodoro_timer.dart';
 import 'timer_service.dart';
+import 'services/tray_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +24,7 @@ void main() async {
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
+      await windowManager.setPreventClose(true); // Prevent default close
     });
   }
 
@@ -34,8 +36,41 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WindowListener {
+  @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+    TrayService().init();
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onWindowClose() async {
+    bool isPreventClose = await windowManager.isPreventClose();
+    if (isPreventClose) {
+      // Hide the window instead of closing it
+      await windowManager.hide();
+      
+      // Also maybe skip taskbar to make it really feel "gone" to tray
+      await windowManager.setSkipTaskbar(true);
+    } else {
+      // Should not happen if setPreventClose(true) works, but just in case
+      // exit(0); 
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

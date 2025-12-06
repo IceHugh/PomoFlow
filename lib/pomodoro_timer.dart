@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -74,7 +75,7 @@ class _TopBar extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 child: GlassContainer(
                   borderRadius: BorderRadius.circular(50),
-                  blur: 15,
+                  blur: Provider.of<TimerService>(context).backgroundType == 'image' ? 0 : 15,
                   opacity: 0.1,
                   child: const Padding(
                     padding: EdgeInsets.all(8),
@@ -83,7 +84,24 @@ class _TopBar extends StatelessWidget {
                 ),
                 onPressed: () {
                   Navigator.of(context).push(
-                    CupertinoPageRoute(builder: (context) => const SettingsPage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => const SettingsPage(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(0.0, 1.0); // Slide from bottom
+                        const end = Offset.zero;
+                        const curve = Curves.easeOutQuart;
+
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: FadeTransition(
+                            opacity: animation, 
+                            child: child
+                          ),
+                        );
+                      },
+                      transitionDuration: const Duration(milliseconds: 600),
+                    ),
                   );
                 },
               ),
@@ -105,6 +123,22 @@ class _TimerBackground extends StatelessWidget {
     return Selector<TimerService, TimerMode>(
       selector: (_, service) => service.currentMode,
       builder: (context, currentMode, child) {
+        final timerService = Provider.of<TimerService>(context);
+        
+        if (timerService.backgroundType == 'color') {
+          return Container(
+            color: Color(timerService.backgroundColor),
+          );
+        } else if (timerService.backgroundType == 'image' && timerService.backgroundImagePath.isNotEmpty) {
+           return Image.file(
+             File(timerService.backgroundImagePath),
+             fit: BoxFit.cover,
+             width: double.infinity,
+             height: double.infinity,
+             errorBuilder: (ctx, err, stack) => Container(color: Colors.black), // Fallback
+           );
+        }
+
         Color bgTop, bgBottom;
         if (currentMode == TimerMode.focus) {
           bgTop = isDarkMode ? const Color(0xFF2E3192) : const Color(0xFFA1C4FD);
@@ -133,7 +167,11 @@ class _BackgroundOrbs extends StatelessWidget {
   const _BackgroundOrbs();
 
   @override
+
   Widget build(BuildContext context) {
+    if (Provider.of<TimerService>(context).backgroundType != 'default') {
+      return const SizedBox.shrink();
+    }
     return Stack(
       children: [
         Positioned(
@@ -146,7 +184,7 @@ class _BackgroundOrbs extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  Colors.purpleAccent.withOpacity(0.4),
+                  Colors.purpleAccent.withValues(alpha: 0.4),
                   Colors.transparent,
                 ],
               ),
@@ -163,7 +201,7 @@ class _BackgroundOrbs extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  Colors.blueAccent.withOpacity(0.4),
+                  Colors.blueAccent.withValues(alpha: 0.4),
                   Colors.transparent,
                 ],
               ),
@@ -276,7 +314,7 @@ class _TimerDisplay extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       blurRadius: 40,
                       spreadRadius: 10,
                     ),
@@ -289,10 +327,10 @@ class _TimerDisplay extends StatelessWidget {
                 width: circleSize,
                 height: circleSize,
                 borderRadius: BorderRadius.circular(circleSize),
-                blur: 25,
+                blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 25,
                 opacity: 0.12,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
                 child: const SizedBox.expand(),
@@ -316,8 +354,8 @@ class _TimerDisplay extends StatelessWidget {
                     return CustomPaint(
                       painter: ProgressPainter(
                         progress: progress,
-                        color: Colors.white.withOpacity(0.9),
-                        trackColor: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.9),
+                        trackColor: Colors.white.withValues(alpha: 0.1),
                       ),
                     );
                   },
@@ -349,7 +387,7 @@ class _TimerDisplay extends StatelessWidget {
                               shadows: [
                                 Shadow(
                                   blurRadius: 10,
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   offset: const Offset(0, 2),
                                 )
                               ],
@@ -366,7 +404,7 @@ class _TimerDisplay extends StatelessWidget {
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -411,7 +449,7 @@ class _TimerControls extends StatelessWidget {
             width: 60,
             height: 60,
             borderRadius: BorderRadius.circular(30),
-            blur: 15,
+            blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 15,
             opacity: 0.15,
             alignment: Alignment.center,
             child: const Icon(CupertinoIcons.restart, color: Colors.white, size: 24),
@@ -432,10 +470,10 @@ class _TimerControls extends StatelessWidget {
                 width: 80,
                 height: 80,
                 borderRadius: BorderRadius.circular(40),
-                blur: 20,
+                blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 20,
                 opacity: 0.25,
                 alignment: Alignment.center,
-                border: Border.all(color: Colors.white.withOpacity(0.6), width: 1),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1),
                 child: Icon(
                   isRunning ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
                   color: Colors.white,
@@ -451,13 +489,13 @@ class _TimerControls extends StatelessWidget {
           padding: EdgeInsets.zero,
           onPressed: () {
             HapticFeedback.mediumImpact();
-            // TODO: Implement skip functionality
+            context.read<TimerService>().skip();
           },
           child: GlassContainer(
             width: 60,
             height: 60,
             borderRadius: BorderRadius.circular(30),
-            blur: 15,
+            blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 15,
             opacity: 0.15,
             alignment: Alignment.center,
             child: const Icon(CupertinoIcons.forward_end_fill, color: Colors.white, size: 24),

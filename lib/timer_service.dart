@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:audioplayers/audioplayers.dart'; // Keep commented until assets are real, or use if we find a URL mechanism.
+import 'services/tray_service.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 enum TimerMode { focus, shortBreak, longBreak }
 
@@ -31,6 +34,11 @@ class TimerService with ChangeNotifier {
   String _whiteNoiseSound = 'rain'; // Default
   bool _enableNotifications = true;
   bool _alwaysOnTop = false;
+
+  // Background Settings
+  String _backgroundType = 'default'; // 'default', 'color', 'image'
+  int _backgroundColor = 0xFF2196F3; // Default blue
+  String _backgroundImagePath = '';
 
   // Notifications
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -84,6 +92,9 @@ class TimerService with ChangeNotifier {
   String get whiteNoiseSound => _whiteNoiseSound;
   bool get enableNotifications => _enableNotifications;
   bool get alwaysOnTop => _alwaysOnTop;
+  String get backgroundType => _backgroundType;
+  int get backgroundColor => _backgroundColor;
+  String get backgroundImagePath => _backgroundImagePath;
 
   // ...
 
@@ -94,6 +105,10 @@ class TimerService with ChangeNotifier {
     _whiteNoiseSound = prefs.getString('whiteNoiseSound') ?? 'rain';
     _enableNotifications = prefs.getBool('enableNotifications') ?? true;
     _alwaysOnTop = prefs.getBool('alwaysOnTop') ?? false;
+    
+    _backgroundType = prefs.getString('backgroundType') ?? 'default';
+    _backgroundColor = prefs.getInt('backgroundColor') ?? 0xFF2196F3;
+    _backgroundImagePath = prefs.getString('backgroundImagePath') ?? '';
     
     // ...
     
@@ -113,6 +128,9 @@ class TimerService with ChangeNotifier {
     String? whiteNoiseSound,
     bool? enableNotifications,
     bool? alwaysOnTop,
+    String? backgroundType,
+    int? backgroundColor,
+    String? backgroundImagePath,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     if (focus != null) {
@@ -170,10 +188,54 @@ class TimerService with ChangeNotifier {
       _applyAlwaysOnTop(alwaysOnTop);
     }
     
+    if (backgroundType != null) {
+      _backgroundType = backgroundType;
+      prefs.setString('backgroundType', backgroundType);
+    }
+    if (backgroundColor != null) {
+      _backgroundColor = backgroundColor;
+      prefs.setInt('backgroundColor', backgroundColor);
+    }
+    if (backgroundImagePath != null) {
+      _backgroundImagePath = backgroundImagePath;
+      prefs.setString('backgroundImagePath', backgroundImagePath);
+    }
+    
     // Check if we need to update white noise (e.g. if we add a noise setting later)
     _manageWhiteNoise();
     
     notifyListeners();
+  }
+
+  Future<void> saveBackgroundImage(String sourcePath) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = 'bg_${DateTime.now().millisecondsSinceEpoch}.jpg'; // Unique name
+      final newPath = '${appDir.path}/$fileName';
+      
+      // Delete old background image if it exists and is in the app directory
+      if (_backgroundImagePath.isNotEmpty) {
+        final oldFile = File(_backgroundImagePath);
+        if (await oldFile.exists() && _backgroundImagePath.startsWith(appDir.path)) {
+           try {
+             await oldFile.delete();
+           } catch (e) {
+             if (kDebugMode) print('Error deleting old background: $e');
+           }
+        }
+      }
+
+      // Copy new file
+      final sourceFile = File(sourcePath);
+      await sourceFile.copy(newPath);
+
+      // Update settings
+      await updateSettings(backgroundType: 'image', backgroundImagePath: newPath);
+    } catch (e) {
+      if (kDebugMode) print('Error saving background image: $e');
+      // Fallback: just try to use source path if copy fails
+      await updateSettings(backgroundType: 'image', backgroundImagePath: sourcePath);
+    }
   }
 
   void _applyAlwaysOnTop(bool alwaysOnTop) async {
@@ -218,6 +280,29 @@ class TimerService with ChangeNotifier {
     _remainingSeconds = _getTotalSecondsForMode(_currentMode);
     _updateBadge();
     notifyListeners();
+  }
+
+  void skip() {
+    _stopTimer(resetUI: false);
+    
+    TimerMode nextMode;
+    if (_currentMode == TimerMode.focus) {
+      _cycleCount++;
+      if (_cycleCount % 4 == 0) {
+        nextMode = TimerMode.longBreak;
+      } else {
+        nextMode = TimerMode.shortBreak;
+      }
+    } else {
+      nextMode = TimerMode.focus;
+    }
+    
+    setMode(nextMode);
+    
+    // If loop mode is on, we essentially "fast forward" to the next running state
+    if (_loopMode) {
+      _startTimer();
+    }
   }
 
   void _startTimer() {
@@ -369,18 +454,20 @@ class TimerService with ChangeNotifier {
 
   void _updateBadge() {
     try {
-      String prefix = _currentMode == TimerMode.focus ? "🍅 " : "☕️ ";
-      platform.invokeMethod('updateTimer', {'time': "$prefix$formattedTime"});
+      String timeText = formattedTime;
+      // Update Tray Title via TrayService ONLY
+      TrayService().updateTitle(timeText);
     } catch (e) {
-      // Ignore
+      if (kDebugMode) print("Error updating badge/tray: $e");
     }
   }
 
   void _clearBadge() {
     try {
-      platform.invokeMethod('clearTimer');
+      // Reset tray title when cleared (stopped/reset)
+      TrayService().updateTitle(formattedTime); 
     } catch (e) {
-      // Ignore
+       // Ignore
     }
   }
 }

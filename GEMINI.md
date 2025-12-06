@@ -5,7 +5,7 @@
 
 **Key Features:**
 - **Pomodoro Timer**: Core focus/break timer functionality.
-- **UI Design**: Modern Glassmorphism aesthetic.
+- **UI Design**: Modern Glassmorphism aesthetic with Custom Backgrounds (Color/Image).
 - **Sound**: Custom alarm and ambient sound support (`audioplayers`).
 - **Notifications**: System notifications for timer events (`flutter_local_notifications`).
 - **Window Control**: "Always on Top" and other window management features (`window_manager`).
@@ -18,10 +18,10 @@
 ## Tech Stack
 - **Languages**: Dart, Kotlin (Android), Swift (iOS/macOS).
 - **State Management**: `provider`.
-- **Storage**: `shared_preferences`.
+- **Storage**: `shared_preferences`, `path_provider`.
 - **Audio**: `audioplayers`.
 - **Desktop Utils**: `window_manager`.
-- **Tools**: `flutter_launcher_icons`.
+- **Plugins**: `flutter_launcher_icons`, `flutter_colorpicker`, `file_picker`.
 
 ## User Preferences & Memories
 The following preferences have been observed and should be strictly followed:
