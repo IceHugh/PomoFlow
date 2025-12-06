@@ -75,7 +75,7 @@ class _TopBar extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 child: GlassContainer(
                   borderRadius: BorderRadius.circular(50),
-                  blur: Provider.of<TimerService>(context).backgroundType == 'image' ? 0 : 15,
+                  blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 15,
                   opacity: 0.1,
                   child: const Padding(
                     padding: EdgeInsets.all(8),
@@ -169,7 +169,8 @@ class _BackgroundOrbs extends StatelessWidget {
   @override
 
   Widget build(BuildContext context) {
-    if (Provider.of<TimerService>(context).backgroundType != 'default') {
+    final backgroundType = context.select<TimerService, String>((s) => s.backgroundType);
+    if (backgroundType != 'default') {
       return const SizedBox.shrink();
     }
     return Stack(
