@@ -71,15 +71,19 @@ class _TopBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              CupertinoButton(
+              Opacity(
+                opacity: context.select<TimerService, double>((s) => s.uiOpacity),
+                child: CupertinoButton(
                 padding: EdgeInsets.zero,
                 child: GlassContainer(
                   borderRadius: BorderRadius.circular(50),
                   blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 15,
                   opacity: 0.1,
-                  child: const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Icon(CupertinoIcons.settings, size: 20, color: CupertinoColors.label),
+                  color: Color(context.select<TimerService, int>((s) => s.contentColor)),
+                  border: Border.all(color: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.2), width: 0.5),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(CupertinoIcons.settings, size: 20, color: Color(context.select<TimerService, int>((s) => s.contentColor))),
                   ),
                 ),
                 onPressed: () {
@@ -104,6 +108,7 @@ class _TopBar extends StatelessWidget {
                     ),
                   );
                 },
+              ),
               ),
             ],
           ),
@@ -330,8 +335,10 @@ class _TimerDisplay extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         // GROUP A: Static Background (Cached)
-        RepaintBoundary(
-          child: Stack(
+        Opacity(
+          opacity: context.select<TimerService, double>((s) => s.uiOpacity),
+          child: RepaintBoundary(
+            child: Stack(
             alignment: Alignment.center,
             children: [
               // 1. Background Glow
@@ -342,7 +349,7 @@ class _TimerDisplay extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.15),
                       blurRadius: 40,
                       spreadRadius: 10,
                     ),
@@ -357,8 +364,9 @@ class _TimerDisplay extends StatelessWidget {
                 borderRadius: BorderRadius.circular(circleSize),
                 blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 25,
                 opacity: 0.12,
+                color: Color(context.select<TimerService, int>((s) => s.contentColor)),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.3),
                   width: 1.5,
                 ),
                 child: const SizedBox.expand(),
@@ -366,6 +374,8 @@ class _TimerDisplay extends StatelessWidget {
             ],
           ),
         ),
+        ),
+
 
         // GROUP B: Dynamic Foreground (Isolated)
         RepaintBoundary(
@@ -373,8 +383,10 @@ class _TimerDisplay extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               // 3. Progress Ring
-              SizedBox(
-                width: circleSize + 20,
+              Opacity(
+                opacity: context.select<TimerService, double>((s) => s.uiOpacity),
+                child: SizedBox(
+                  width: circleSize + 20,
                 height: circleSize + 20,
                 child: Selector<TimerService, double>(
                   selector: (_, service) => service.progress,
@@ -382,12 +394,13 @@ class _TimerDisplay extends StatelessWidget {
                     return CustomPaint(
                       painter: ProgressPainter(
                         progress: progress,
-                        color: Colors.white.withValues(alpha: 0.9),
-                        trackColor: Colors.white.withValues(alpha: 0.1),
+                        color: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.9),
+                        trackColor: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.1),
                       ),
                     );
                   },
                 ),
+              ),
               ),
 
               // 4. Text & Status
@@ -409,9 +422,11 @@ class _TimerDisplay extends StatelessWidget {
                             style: TextStyle(
                               fontSize: circleSize * 0.28,
                               fontWeight: FontWeight.w200,
-                              fontFamily: '.SF Pro Display',
+                              fontFamily: context.select<TimerService, String>((s) => s.fontFamily) == 'system' 
+                                  ? '.SF Pro Display' 
+                                  : context.select<TimerService, String>((s) => s.fontFamily),
                               letterSpacing: -2.0,
-                              color: CupertinoColors.white,
+                              color: Color(context.select<TimerService, int>((s) => s.contentColor)),
                               shadows: [
                                 Shadow(
                                   blurRadius: 10,
@@ -424,29 +439,7 @@ class _TimerDisplay extends StatelessWidget {
                         );
                       }
                     ),
-                    const SizedBox(height: 8),
-                    // Status Label
-                    Selector<TimerService, bool>(
-                      selector: (_, service) => service.isRunning,
-                      builder: (context, isRunning, child) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            isRunning ? 'RUNNING' : 'PAUSED',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 1.2,
-                              color: Colors.white,
-                            ),
-                          ),
-                        );
-                      }
-                    ),
+
                   ],
                 ),
               ),
@@ -463,9 +456,11 @@ class _TimerControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
+    return Opacity(
+      opacity: context.select<TimerService, double>((s) => s.uiOpacity),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
         // Reset
         CupertinoButton(
           padding: EdgeInsets.zero,
@@ -479,8 +474,10 @@ class _TimerControls extends StatelessWidget {
             borderRadius: BorderRadius.circular(30),
             blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 15,
             opacity: 0.15,
+            color: Color(context.select<TimerService, int>((s) => s.contentColor)),
             alignment: Alignment.center,
-            child: const Icon(CupertinoIcons.restart, color: Colors.white, size: 24),
+            border: Border.all(color: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.3), width: 1),
+            child: Icon(CupertinoIcons.restart, color: Color(context.select<TimerService, int>((s) => s.contentColor)), size: 24),
           ),
         ),
         const SizedBox(width: 30),
@@ -500,11 +497,12 @@ class _TimerControls extends StatelessWidget {
                 borderRadius: BorderRadius.circular(40),
                 blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 20,
                 opacity: 0.25,
+                color: Color(context.select<TimerService, int>((s) => s.contentColor)),
                 alignment: Alignment.center,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1),
+                border: Border.all(color: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.6), width: 1),
                 child: Icon(
                   isRunning ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
-                  color: Colors.white,
+                  color: Color(context.select<TimerService, int>((s) => s.contentColor)),
                   size: 40,
                 ),
               ),
@@ -525,11 +523,14 @@ class _TimerControls extends StatelessWidget {
             borderRadius: BorderRadius.circular(30),
             blur: context.select<TimerService, String>((s) => s.backgroundType) == 'image' ? 0 : 15,
             opacity: 0.15,
+            color: Color(context.select<TimerService, int>((s) => s.contentColor)),
             alignment: Alignment.center,
-            child: const Icon(CupertinoIcons.forward_end_fill, color: Colors.white, size: 24),
+            border: Border.all(color: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.3), width: 1),
+            child: Icon(CupertinoIcons.forward_end_fill, color: Color(context.select<TimerService, int>((s) => s.contentColor)), size: 24),
           ),
         ),
       ],
+      ),
     );
   }
 }

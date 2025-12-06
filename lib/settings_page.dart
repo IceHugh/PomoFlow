@@ -33,7 +33,7 @@ class SettingsPage extends StatelessWidget {
                       child: const Text('Cancel'),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                     CupertinoButton(
                       child: const Text('Done'),
                       onPressed: () {
@@ -100,7 +100,7 @@ class SettingsPage extends StatelessWidget {
                       child: const Text('Cancel'),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Text('Alarm Sound', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const Text('Alarm Sound', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                     CupertinoButton(
                       child: const Text('Done'),
                       onPressed: () {
@@ -188,6 +188,56 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+  void _showContentColorPicker(BuildContext context, TimerService timerService) {
+    Color selectedColor = Color(timerService.contentColor);
+
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          height: 500,
+          padding: const EdgeInsets.all(16),
+          margin: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom),
+          color: CupertinoColors.systemBackground.resolveFrom(context),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      child: const Text('Cancel'),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    CupertinoButton(
+                      child: const Text('Done'),
+                      onPressed: () {
+                         timerService.updateSettings(contentColor: selectedColor.value);
+                         Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: ColorPicker(
+                    pickerColor: selectedColor,
+                    onColorChanged: (color) {
+                      setState(() => selectedColor = color);
+                    },
+                    labelTypes: const [],
+                    pickerAreaHeightPercent: 0.7,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickImage(TimerService timerService) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.image,
@@ -199,6 +249,87 @@ class SettingsPage extends StatelessWidget {
         await timerService.saveBackgroundImage(path);
       }
     }
+  }
+
+  void _showFontPicker(BuildContext context, TimerService timerService) {
+    // Curated list of common cross-platform fonts
+    final fonts = [
+      'system',
+      'Arial',
+      'Verdana',
+      'Tahoma',
+      'Trebuchet MS',
+      'Times New Roman',
+      'Georgia',
+      'Garamond',
+      'Courier New',
+      'Brush Script MT',
+      'Comic Sans MS',
+      'Impact',
+    ];
+    
+    // Helper to get display name
+    String getDisplayName(String font) {
+      if (font == 'system') return 'System Default';
+      return font;
+    }
+
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => Container(
+        height: 300,
+        padding: const EdgeInsets.only(top: 6.0),
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                   CupertinoButton(
+                    child: const Text('Cancel'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Text('Font', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                  CupertinoButton(
+                    child: const Text('Done'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CupertinoPicker(
+                  magnification: 1.22,
+                  squeeze: 1.2,
+                  useMagnifier: true,
+                  itemExtent: 32,
+                  scrollController: FixedExtentScrollController(
+                    initialItem: fonts.indexOf(timerService.fontFamily) != -1 
+                        ? fonts.indexOf(timerService.fontFamily) 
+                        : 0,
+                  ),
+                  onSelectedItemChanged: (int index) {
+                    timerService.updateSettings(fontFamily: fonts[index]);
+                  },
+                  children: fonts.map((font) => Center(
+                    child: Text(
+                      getDisplayName(font),
+                      style: TextStyle(
+                        fontFamily: font == 'system' ? null : font,
+                      ),
+                    ),
+                  )).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showWhiteNoisePicker(BuildContext context, TimerService timerService, Function(String) onChanged) {
@@ -227,7 +358,7 @@ class SettingsPage extends StatelessWidget {
                       child: const Text('Cancel'),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Text('Focus Sound', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const Text('Focus Sound', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                     CupertinoButton(
                       child: const Text('Done'),
                       onPressed: () {
@@ -269,7 +400,7 @@ class SettingsPage extends StatelessWidget {
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: CupertinoColors.secondaryLabel.resolveFrom(context),
           letterSpacing: 0.5,
@@ -300,7 +431,7 @@ class SettingsPage extends StatelessWidget {
             Expanded(
               child: DefaultTextStyle(
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w400,
                   color: isDarkMode ? CupertinoColors.white : CupertinoColors.label.resolveFrom(context),
                 ),
@@ -312,7 +443,7 @@ class SettingsPage extends StatelessWidget {
               DefaultTextStyle(
                 style: TextStyle(
                   color: isDarkMode ? CupertinoColors.systemGrey2 : CupertinoColors.secondaryLabel.resolveFrom(context),
-                  fontSize: 14,
+                  fontSize: 13,
                 ),
                 child: additionalInfo,
               ),
@@ -390,7 +521,7 @@ class SettingsPage extends StatelessWidget {
                         Text(
                           'Settings',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             fontFamily: '.SF Pro Display',
                             color: isDarkMode ? CupertinoColors.white : CupertinoColors.label.resolveFrom(context),
@@ -474,7 +605,7 @@ class SettingsPage extends StatelessWidget {
                                     Text(
                                       'Auto-start Focus/Breaks',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 11,
                                         color: isDarkMode ? CupertinoColors.systemGrey2 : CupertinoColors.secondaryLabel.resolveFrom(context),
                                         fontWeight: FontWeight.w400,
                                       ),
@@ -573,9 +704,9 @@ class SettingsPage extends StatelessWidget {
                                     groupValue: timerService.themeMode,
                                     padding: const EdgeInsets.all(2),
                                     children: const {
-                                      'system': Text('Auto', style: TextStyle(fontSize: 13)),
-                                      'light': Text('Light', style: TextStyle(fontSize: 13)),
-                                      'dark': Text('Dark', style: TextStyle(fontSize: 13)),
+                                      'system': Text('Auto', style: TextStyle(fontSize: 12)),
+                                      'light': Text('Light', style: TextStyle(fontSize: 12)),
+                                      'dark': Text('Dark', style: TextStyle(fontSize: 12)),
                                     },
                                     onValueChanged: (value) {
                                       if (value != null) {
@@ -596,9 +727,9 @@ class SettingsPage extends StatelessWidget {
                                     groupValue: timerService.backgroundType,
                                     padding: const EdgeInsets.all(2),
                                     children: const {
-                                      'default': Text('Default', style: TextStyle(fontSize: 13)),
-                                      'color': Text('Color', style: TextStyle(fontSize: 13)),
-                                      'image': Text('Image', style: TextStyle(fontSize: 13)),
+                                      'default': Text('Default', style: TextStyle(fontSize: 12)),
+                                      'color': Text('Color', style: TextStyle(fontSize: 12)),
+                                      'image': Text('Image', style: TextStyle(fontSize: 12)),
                                     },
                                     onValueChanged: (value) {
                                       if (value != null) {
@@ -649,6 +780,61 @@ class SettingsPage extends StatelessWidget {
                                   onTap: () => _pickImage(timerService),
                                 ),
                               ],
+                              const Divider(height: 1, indent: 60, color: Colors.black12),
+                              // UI Opacity Slider
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: Row(
+                                  children: [
+                                    _buildIcon(CupertinoIcons.eye, CupertinoColors.systemCyan),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'UI Opacity',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w400,
+                                        color: isDarkMode ? CupertinoColors.white : CupertinoColors.label.resolveFrom(context),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        child: CupertinoSlider(
+                                          value: timerService.uiOpacity,
+                                          min: 0.1,
+                                          max: 1.0,
+                                          activeColor: CupertinoColors.systemCyan,
+                                          onChanged: (value) => timerService.updateSettings(uiOpacity: value),
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 40,
+                                      child: Text(
+                                        '${(timerService.uiOpacity * 100).toInt()}%',
+                                        textAlign: TextAlign.end,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: isDarkMode ? CupertinoColors.systemGrey2 : CupertinoColors.secondaryLabel.resolveFrom(context),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) ...[
+                                const Divider(height: 1, indent: 60, color: Colors.black12),
+                                _buildGlassTile(
+                                  context: context,
+                                  leading: _buildIcon(CupertinoIcons.text_cursor, CupertinoColors.systemIndigo),
+                                  title: const Text('Font'),
+                                  additionalInfo: Text(
+                                    timerService.fontFamily == 'system' ? 'System' : timerService.fontFamily,
+                                  ),
+                                  trailing: const Icon(CupertinoIcons.chevron_forward, size: 18, color: CupertinoColors.systemGrey3),
+                                  onTap: () => _showFontPicker(context, timerService),
+                                ),
+                              ],
                               if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) ...[
                                 const Divider(height: 1, indent: 60, color: Colors.black12),
                                 _buildGlassTile(
@@ -664,6 +850,22 @@ class SettingsPage extends StatelessWidget {
                                   ),
                                 ),
                               ],
+                              const Divider(height: 1, indent: 60, color: Colors.black12),
+                              _buildGlassTile(
+                                context: context,
+                                leading: _buildIcon(CupertinoIcons.textformat, Color(timerService.contentColor)),
+                                title: const Text('Content Color'),
+                                trailing: Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: Color(timerService.contentColor),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.grey.withOpacity(0.5)),
+                                  ),
+                                ),
+                                onTap: () => _showContentColorPicker(context, timerService),
+                              ),
                             ],
                           ),
                         ),
@@ -674,7 +876,7 @@ class SettingsPage extends StatelessWidget {
                             'PomoFlow ${const String.fromEnvironment('APP_VERSION', defaultValue: 'v0.0.1')}',
                             style: TextStyle(
                               color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                              fontSize: 13,
+                              fontSize: 11,
                             ),
                           ),
                         ),

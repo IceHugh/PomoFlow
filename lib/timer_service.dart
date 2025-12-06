@@ -37,6 +37,9 @@ class TimerService with ChangeNotifier {
   String _backgroundType = 'default';
   int _backgroundColor = 0xFF2196F3;
   String _backgroundImagePath = '';
+  int _contentColor = 0xFFFFFFFF; // Default White
+  String _fontFamily = 'system';
+  double _uiOpacity = 1.0;
 
   // Notifications
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -93,6 +96,9 @@ class TimerService with ChangeNotifier {
   String get backgroundType => _backgroundType;
   int get backgroundColor => _backgroundColor;
   String get backgroundImagePath => _backgroundImagePath;
+  int get contentColor => _contentColor;
+  String get fontFamily => _fontFamily;
+  double get uiOpacity => _uiOpacity;
 
   // ...
 
@@ -115,6 +121,9 @@ class TimerService with ChangeNotifier {
     _backgroundType = prefs.getString('backgroundType') ?? 'default';
     _backgroundColor = prefs.getInt('backgroundColor') ?? 0xFF2196F3;
     _backgroundImagePath = prefs.getString('backgroundImagePath') ?? '';
+    _contentColor = prefs.getInt('contentColor') ?? 0xFFFFFFFF;
+    _fontFamily = prefs.getString('fontFamily') ?? 'system';
+    _uiOpacity = prefs.getDouble('uiOpacity') ?? 1.0;
     
     // Initialize timer with saved focus duration since we start in focus mode
     if (_currentMode == TimerMode.focus) {
@@ -144,6 +153,9 @@ class TimerService with ChangeNotifier {
     String? backgroundType,
     int? backgroundColor,
     String? backgroundImagePath,
+    int? contentColor,
+    String? fontFamily,
+    double? uiOpacity,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     if (focus != null) {
@@ -210,6 +222,18 @@ class TimerService with ChangeNotifier {
     if (backgroundImagePath != null) {
       _backgroundImagePath = backgroundImagePath;
       await prefs.setString('backgroundImagePath', backgroundImagePath);
+    }
+    if (contentColor != null) {
+      _contentColor = contentColor;
+      await prefs.setInt('contentColor', contentColor);
+    }
+    if (fontFamily != null) {
+      _fontFamily = fontFamily;
+      await prefs.setString('fontFamily', fontFamily);
+    }
+    if (uiOpacity != null) {
+      _uiOpacity = uiOpacity;
+      await prefs.setDouble('uiOpacity', uiOpacity);
     }
     
     // Check if we need to update white noise (e.g. if we add a noise setting later)
