@@ -100,7 +100,15 @@ class TimerService with ChangeNotifier {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    // ...
+    
+    _focusMinutes = prefs.getInt('focusMinutes') ?? 25;
+    _shortBreakMinutes = prefs.getInt('shortBreakMinutes') ?? 5;
+    _longBreakMinutes = prefs.getInt('longBreakMinutes') ?? 15;
+    _loopMode = prefs.getBool('loopMode') ?? false;
+    _cycleCount = prefs.getInt('cycleCount') ?? 0;
+    _themeMode = prefs.getString('themeMode') ?? 'system';
+    _tickSound = prefs.getBool('tickSound') ?? false;
+
     _alarmSound = prefs.getString('alarmSound') ?? 'bell';
     _whiteNoiseSound = prefs.getString('whiteNoiseSound') ?? 'rain';
     _enableNotifications = prefs.getBool('enableNotifications') ?? true;
@@ -110,8 +118,16 @@ class TimerService with ChangeNotifier {
     _backgroundColor = prefs.getInt('backgroundColor') ?? 0xFF2196F3;
     _backgroundImagePath = prefs.getString('backgroundImagePath') ?? '';
     
-    // ...
-    
+    // Initialize timer with saved focus duration since we start in focus mode
+    if (_currentMode == TimerMode.focus) {
+      _remainingSeconds = _focusMinutes * 60;
+    }
+
+    // Apply window settings
+    if (_alwaysOnTop) {
+      _applyAlwaysOnTop(true);
+    }
+
     // Check white noise on load
     _manageWhiteNoise();
     notifyListeners();
