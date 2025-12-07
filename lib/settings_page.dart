@@ -6,6 +6,7 @@ import 'timer_service.dart';
 import 'widgets/glass_container.dart';
 import 'widgets/settings/glass_tile.dart';
 import 'widgets/settings/settings_pickers.dart';
+import 'main.dart' show appVersion;
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -381,7 +382,7 @@ class SettingsPage extends StatelessWidget {
                         const SizedBox(height: 30),
                         Center(
                           child: Text(
-                            'PomoFlow v1.0.0',
+                            'PomoFlow $appVersion',
                             style: TextStyle(
                               color: CupertinoColors.secondaryLabel.resolveFrom(context),
                               fontSize: 13,

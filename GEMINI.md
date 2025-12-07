@@ -9,6 +9,11 @@
 - **UI Customization**: Adjustable UI opacity, font selection, and theme modes (Light/Dark/System).
 - **Sound**: Custom alarm and ambient sound support (`audioplayers`).
 - **Notifications**: System notifications for timer events (`flutter_local_notifications`).
+- **Android Widget**: 
+  - Real-time timer display with circular progress indicator
+  - Smart pause control (only available during Focus mode, hidden during breaks)
+  - Performance-optimized with state caching to prevent UI flickering
+  - Syncs colors and background settings from main app
 - **Window Control**: "Always on Top" and other window management features (`window_manager`).
 - **Performance**: High-resolution image caching, memory optimization, and persistent background storage.
 - **Platforms**: Android, iOS, macOS, Windows.
@@ -22,6 +27,7 @@
 - **State Management**: `provider`.
 - **Storage**: `shared_preferences`, `path_provider`.
 - **Audio**: `audioplayers`.
+- **Widgets**: `home_widget` (Android home screen widget with RemoteViews).
 - **Desktop Utils**: `window_manager`.
 - **Plugins**: `flutter_launcher_icons`, `flutter_colorpicker`, `file_picker`.
 

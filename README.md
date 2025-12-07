@@ -14,6 +14,7 @@ A modern, high-performance Pomodoro timer application built with Flutter, featur
 - **⏱️ Customizable Timer**: Flexible focus and break durations to suit your workflow.
 - **🔊 Immersive Soundscapes**: Custom ambient sounds and pleasant alarm tones powered by `audioplayers`.
 - **🔔 Smart Notifications**: Native system notifications keep you informed without being intrusive (`flutter_local_notifications`).
+- **📱 Android Home Screen Widget**: Real-time timer display with smart pause control (Focus mode only) and performance-optimized updates.
 - **🪟 Advanced Window Control**: "Always on Top" mode ensures your timer is always visible when you need it (`window_manager`).
 - **⚡ Performance Optimized**: Efficient resource management ensuring low memory usage even with 8K backgrounds.
 - **💻 Cross-Platform**: Optimized for macOS, Windows, Android, and iOS.
@@ -24,6 +25,7 @@ A modern, high-performance Pomodoro timer application built with Flutter, featur
 - **State Management**: [Provider](https://pub.dev/packages/provider)
 - **Storage**: [shared_preferences](https://pub.dev/packages/shared_preferences) & [path_provider](https://pub.dev/packages/path_provider)
 - **Audio**: [audioplayers](https://pub.dev/packages/audioplayers)
+- **Widgets**: [home_widget](https://pub.dev/packages/home_widget) (Android home screen widget)
 - **Desktop Integration**: [window_manager](https://pub.dev/packages/window_manager)
 - **UI Extensions**: [flutter_colorpicker](https://pub.dev/packages/flutter_colorpicker), [file_picker](https://pub.dev/packages/file_picker)
 

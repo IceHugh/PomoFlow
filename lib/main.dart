@@ -4,7 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'pomodoro_timer.dart';
 import 'timer_service.dart';
+import 'package:home_widget/home_widget.dart';
 import 'services/tray_service.dart';
+
+// 从编译时参数获取版本号
+const String appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +30,9 @@ void main() async {
       await windowManager.setPreventClose(true);
     });
   }
+
+  // Register Background Callback early
+  HomeWidget.registerInteractivityCallback(backgroundCallback);
 
   runApp(
     ChangeNotifierProvider(

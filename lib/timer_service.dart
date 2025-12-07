@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:ui';
+import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,9 +9,27 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'services/tray_service.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:home_widget/home_widget.dart';
 import 'dart:io';
 
 enum TimerMode { focus, shortBreak, longBreak }
+
+// Background Callback for HomeWidget
+@pragma('vm:entry-point')
+Future<void> backgroundCallback(Uri? uri) async {
+  debugPrint("Background Callback Triggered! URI: $uri");
+  if (uri?.host == 'toggle') {
+    // Try to find the main isolate port
+    final SendPort? sendPort = IsolateNameServer.lookupPortByName('flow_timer_service_port');
+    debugPrint("Background Callback: Port found? ${sendPort != null}");
+    if (sendPort != null) {
+      sendPort.send('toggle');
+      debugPrint("Background Callback: Sent toggle message");
+    } else {
+      debugPrint("Background Callback: Port NOT found. App isolate might be dead.");
+    }
+  }
+}
 
 class TimerService with ChangeNotifier {
   static const platform = MethodChannel('com.example.flow/timer');
@@ -18,13 +38,17 @@ class TimerService with ChangeNotifier {
   int _remainingSeconds = 25 * 60;
   bool _isRunning = false;
   TimerMode _currentMode = TimerMode.focus;
+  
+  // Isolate Communication
+  final ReceivePort _port = ReceivePort();
 
   // Settings
   int _focusMinutes = 25;
   int _shortBreakMinutes = 5;
   int _longBreakMinutes = 15;
-  bool _loopMode = true;
   int _cycleCount = 0;
+  bool _loopMode = true;
+  int _tickCount = 0; // Counter for widget update throttling
   
   String _themeMode = 'system';
   bool _tickSound = true;
@@ -50,11 +74,36 @@ class TimerService with ChangeNotifier {
   final AudioPlayer _whiteNoisePlayer = AudioPlayer();
 
   TimerService() {
+    debugPrint("TimerService: Initializing...");
     _loadSettings();
     _initNotifications();
     
     // Set up white noise loop
     _whiteNoisePlayer.setReleaseMode(ReleaseMode.loop);
+    
+    // Register Port for Background Communication
+    IsolateNameServer.removePortNameMapping('flow_timer_service_port');
+    bool registered = IsolateNameServer.registerPortWithName(_port.sendPort, 'flow_timer_service_port');
+    debugPrint("TimerService: Port registered? $registered");
+    
+    _port.listen((message) {
+      debugPrint("TimerService: Received message on port: $message");
+      if (message == 'toggle') {
+        toggleTimer();
+      }
+    });
+    
+    // Register Background Callback
+    HomeWidget.registerInteractivityCallback(backgroundCallback);
+    debugPrint("TimerService: Background callback registered");
+    
+    // Listen for Widget Clicks (Legacy App Launch handling)
+    HomeWidget.widgetClicked.listen((Uri? uri) {
+      debugPrint("TimerService: Widget Clicked (Legacy Stream): $uri");
+      if (uri?.host == 'toggle') {
+        toggleTimer();
+      }
+    });
   }
 
   Future<void> _initNotifications() async {
@@ -139,6 +188,7 @@ class TimerService with ChangeNotifier {
     }
 
     _manageWhiteNoise();
+    _updateWidget();
     notifyListeners();
   }
 
@@ -348,12 +398,19 @@ class TimerService with ChangeNotifier {
 
   void _startTimer() {
     _isRunning = true;
+    _tickCount = 0; // Reset tick counter
     _manageWhiteNoise(); // Start noise if needed
+    _updateWidget(); // Immediate update to show "Running" state
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
-        _updateBadge();
+        _tickCount++;
+        _updateBadge(); // Update tray only, not widget
+        
+        // Update widget every second for time display
+        // Android side will use state caching to avoid unnecessary redraws
+        _updateWidget();
         
         // Tick sound
         if (_tickSound) {
@@ -376,6 +433,7 @@ class TimerService with ChangeNotifier {
     if (resetUI) {
       _clearBadge();
     }
+    _updateWidget(); // Immediate update to show "Paused" state
     notifyListeners();
   }
 
@@ -498,8 +556,39 @@ class TimerService with ChangeNotifier {
       String timeText = formattedTime;
       // Update Tray Title via TrayService ONLY
       TrayService().updateTitle(timeText);
+      // Widget update is now handled separately (every 5s or on state change)
     } catch (e) {
       if (kDebugMode) print("Error updating badge/tray: $e");
+    }
+  }
+
+  Future<void> _updateWidget() async {
+    try {
+      if (Platform.isAndroid) {
+        // Calculate progress (0-100)
+        int progressValue = (progress * 100).toInt();
+        await HomeWidget.saveWidgetData<int>('progress', progressValue);
+        
+        await HomeWidget.saveWidgetData<String>('time', formattedTime);
+        await HomeWidget.saveWidgetData<String>('status', _currentMode == TimerMode.focus ? 'Focusing' : 'Break');
+        
+        // Sync State
+        await HomeWidget.saveWidgetData<bool>('isRunning', _isRunning);
+        
+        // Sync Styles
+        await HomeWidget.saveWidgetData<int>('contentColor', _contentColor);
+        await HomeWidget.saveWidgetData<int>('backgroundColor', _backgroundColor);
+        await HomeWidget.saveWidgetData<String>('backgroundType', _backgroundType);
+        await HomeWidget.saveWidgetData<String>('backgroundPath', _backgroundImagePath);
+
+        await HomeWidget.updateWidget(
+          name: 'TimerWidgetProvider',
+          androidName: 'TimerWidgetProvider',
+          qualifiedAndroidName: 'com.example.flow.flow.TimerWidgetProvider',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) print("Error updating widget: $e");
     }
   }
 

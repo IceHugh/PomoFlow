@@ -13,6 +13,7 @@ class TrayService with TrayListener {
   TrayService._internal();
 
   Future<void> init() async {
+    if (Platform.isAndroid || Platform.isIOS) return;
     await trayManager.destroy(); // Cleanup any existing icon (helper for hot restart)
     
     // Use visible icon + title (timer)

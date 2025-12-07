@@ -1,10 +1,10 @@
 #define MyAppName "PomoFlow"
 #ifndef MyAppVersion
-#define MyAppVersion "0.3.0"
+#define MyAppVersion "0.3.1"
 #endif
 #define MyAppPublisher "IceHugh"
 #define MyAppURL "https://github.com/IceHugh/PomoFlow"
-#define MyAppExeName "pomoflow.exe"
+#define MyAppExeName "flow.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.

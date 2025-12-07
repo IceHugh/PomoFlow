@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Layer 1: Background (Gradient) -->
+    <ImageView
+        android:id="@+id/widget_background_layer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_tomato_gradient"
+        android:scaleType="centerCrop" />
+
+
+
+    <!-- Layer 2: Progress Ring -->
+    <ProgressBar
+        android:id="@+id/widget_progress_bar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:indeterminate="false"
+        android:progressDrawable="@drawable/circular_progress"
+        android:progress="75"
+        android:max="100"
+        android:layout_margin="16dp"
+        style="?android:attr/progressBarStyleHorizontal" />
+
+    <!-- Layer 3: Content Container (Clickable) -->
+    <FrameLayout
+        android:id="@+id/timer_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#00000000">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- Time Text -->
+            <TextView
+                android:id="@+id/timer_display"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="25:00"
+                android:textSize="36sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#FFFFFF"
+                android:includeFontPadding="false"
+                android:shadowColor="#40000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="4" />
+                
+        </RelativeLayout>
+    </FrameLayout>
+
+    <!-- Layer 4: Pause Mask (covers entire widget) -->
+    <ImageView
+        android:id="@+id/widget_pause_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="#40000000"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
+
+    <!-- Layer 5: Pause Icon (Centered) -->
+    <ImageView
+        android:id="@+id/widget_action_icon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_pause_state"
+        android:layout_gravity="center"
+        android:visibility="invisible" />
+</FrameLayout>
