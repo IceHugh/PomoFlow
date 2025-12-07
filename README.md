@@ -1,9 +1,12 @@
+<div align="center">
+
 # PomoFlow 🍅
+
+<img src="logo.png" alt="PomoFlow Logo" width="200"/>
 
 A modern, high-performance Pomodoro timer application built with Flutter, featuring a stunning Glassmorphism UI design.
 
-![PomoFlow Banner](https://via.placeholder.com/1280x640.png?text=PomoFlow+Glassmorphism+UI)
-*(Screenshots placeholders - to be updated)*
+</div>
 
 ## ✨ Key Features
 
