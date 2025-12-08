@@ -104,9 +104,33 @@ void showAlarmSoundPicker(BuildContext context) {
           type: SoundType.builtin,
         ),
         const SoundItem(
+          id: 'beep1',
+          name: 'Beep 1',
+          icon: CupertinoIcons.speaker_2_fill,
+          type: SoundType.builtin,
+        ),
+        const SoundItem(
+          id: 'beep2',
+          name: 'Beep 2',
+          icon: CupertinoIcons.speaker_3_fill,
+          type: SoundType.builtin,
+        ),
+        const SoundItem(
+          id: 'chirps',
+          name: 'Chirps',
+          icon: CupertinoIcons.alarm_fill,
+          type: SoundType.builtin,
+        ),
+        const SoundItem(
           id: 'digital',
           name: 'Digital',
           icon: CupertinoIcons.waveform,
+          type: SoundType.builtin,
+        ),
+        const SoundItem(
+          id: 'retro',
+          name: 'Retro',
+          icon: CupertinoIcons.time,
           type: SoundType.builtin,
         ),
         ...timerService.customAlarmSounds.map((s) => SoundItem(

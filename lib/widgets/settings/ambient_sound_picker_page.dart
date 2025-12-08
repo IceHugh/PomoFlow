@@ -98,15 +98,21 @@ void showAmbientSoundPicker(BuildContext context) {
           type: SoundType.none,
         ),
         const SoundItem(
-          id: 'rain',
-          name: 'Rain',
-          icon: CupertinoIcons.cloud_rain_fill,
+          id: 'brook',
+          name: 'Brook',
+          icon: CupertinoIcons.drop_fill,
           type: SoundType.builtin,
         ),
         const SoundItem(
-          id: 'forest',
-          name: 'Forest',
-          icon: CupertinoIcons.tree,
+          id: 'ocean',
+          name: 'Ocean',
+          icon: CupertinoIcons.wind,
+          type: SoundType.builtin,
+        ),
+        const SoundItem(
+          id: 'rain',
+          name: 'Rain',
+          icon: CupertinoIcons.cloud_rain_fill,
           type: SoundType.builtin,
         ),
         ...timerService.customAmbientSounds.map((s) => SoundItem(

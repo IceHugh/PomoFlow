@@ -128,7 +128,7 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet> {
 
       if (widget.isAmbientSound) {
         // Ambient sound preview
-        if (id == 'rain' || id == 'forest') {
+        if (id == 'brook' || id == 'ocean' || id == 'rain') {
           // Built-in ambient sounds
           await _previewPlayer.play(AssetSource('sounds/ambient/$id.mp3'));
         } else {
@@ -148,10 +148,9 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet> {
         });
       } else {
         // Alarm sound preview (plays once)
-        if (id == 'bell' || id == 'digital') {
+        if (id == 'bell' || id == 'beep1' || id == 'beep2' || id == 'chirps' || id == 'digital' || id == 'retro') {
           // Built-in alarm sounds
-          String fileName = id == 'bell' ? 'alarms/bell.mp3' : 'alarms/digital.mp3';
-          await _previewPlayer.play(AssetSource('sounds/$fileName'));
+          await _previewPlayer.play(AssetSource('sounds/alarms/$id.mp3'));
         } else {
           // Custom alarm sound
           final customSound = timerService.customAlarmSounds.firstWhere(
@@ -255,7 +254,7 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet> {
                           // Call the original onSelect
                           widget.onSelect(item.id);
                         },
-                        onDelete: widget.onDelete != null && item.id != 'none' && item.id != 'add'
+                        onDelete: widget.onDelete != null && item.type == SoundType.custom
                             ? () => widget.onDelete!(item.id, item.name)
                             : null,
                       );

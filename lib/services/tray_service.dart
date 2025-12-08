@@ -16,7 +16,7 @@ class TrayService with TrayListener {
     if (Platform.isAndroid || Platform.isIOS) return;
     await trayManager.destroy(); // Cleanup any existing icon (helper for hot restart)
     
-    // Use visible icon + title (timer)
+    // Must set icon first, then title will show next to it
     await trayManager.setIcon(
       Platform.isMacOS ? 'assets/images/tray_icon.png' : 'assets/images/logo.png',
     );
@@ -39,11 +39,7 @@ class TrayService with TrayListener {
   }
 
   Future<void> updateTitle(String text) async {
-    if (Platform.isMacOS) {
-      await trayManager.setTitle(text);
-    } else {
-      // User requested only icon for Windows tray
-    }
+    await trayManager.setTitle(text);
   }
 
   @override

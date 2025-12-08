@@ -71,67 +71,6 @@ class SettingsPickers {
     );
   }
 
-  static void showSoundPicker(BuildContext context, TimerService timerService, Function(String) onChanged) {
-    final sounds = ['bell', 'digital', 'none'];
-    final soundNames = {'bell': 'Bell', 'digital': 'Digital', 'none': 'None'};
-    String selectedSound = timerService.alarmSound;
-    
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Container(
-          height: 250,
-          padding: const EdgeInsets.only(top: 6.0),
-          margin: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          color: CupertinoColors.systemBackground.resolveFrom(context),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    CupertinoButton(
-                      child: const Text('Cancel'),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Text('Alarm Sound', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                    CupertinoButton(
-                      child: const Text('Done'),
-                      onPressed: () {
-                        onChanged(selectedSound);
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ],
-                ),
-                Expanded(
-                  child: CupertinoPicker(
-                    magnification: 1.22,
-                    squeeze: 1.2,
-                    useMagnifier: true,
-                    itemExtent: 32,
-                    scrollController: FixedExtentScrollController(
-                      initialItem: sounds.indexOf(timerService.alarmSound),
-                    ),
-                    onSelectedItemChanged: (int index) {
-                      setState(() {
-                         selectedSound = sounds[index];
-                      });
-                      timerService.previewSound(selectedSound);
-                    },
-                    children: sounds.map((s) => Center(child: Text(soundNames[s]!))).toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   static void showColorPicker(BuildContext context, TimerService timerService) {
     Color selectedColor = Color(timerService.backgroundColor);
@@ -324,67 +263,7 @@ class SettingsPickers {
     );
   }
 
-  static void showWhiteNoisePicker(BuildContext context, TimerService timerService, Function(String) onChanged) {
-    final sounds = ['rain', 'forest', 'none'];
-    final soundNames = {'rain': 'Rain', 'forest': 'Forest', 'none': 'None'};
-    String selectedSound = timerService.whiteNoiseSound;
-    
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Container(
-          height: 250,
-          padding: const EdgeInsets.only(top: 6.0),
-          margin: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          color: CupertinoColors.systemBackground.resolveFrom(context),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    CupertinoButton(
-                      child: const Text('Cancel'),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Text('Focus Sound', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                    CupertinoButton(
-                      child: const Text('Done'),
-                      onPressed: () {
-                         onChanged(selectedSound);
-                         Navigator.pop(context);
-                      },
-                    ),
-                  ],
-                ),
-                Expanded(
-                  child: CupertinoPicker(
-                    magnification: 1.22,
-                    squeeze: 1.2,
-                    useMagnifier: true,
-                    itemExtent: 32,
-                    scrollController: FixedExtentScrollController(
-                      initialItem: sounds.contains(timerService.whiteNoiseSound) ? sounds.indexOf(timerService.whiteNoiseSound) : 0,
-                    ),
-                    onSelectedItemChanged: (int index) {
-                      setState(() {
-                         selectedSound = sounds[index];
-                      });
-                      // No preview for white noise loop
-                    },
-                    children: sounds.map((s) => Center(child: Text(soundNames[s]!))).toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
   static void showCarouselIntervalPicker(BuildContext context, TimerService timerService) {
     // Generate valid intervals
     final List<int> intervals = [5, 6, 10, 15, 20, 25, 30, 45, 60];

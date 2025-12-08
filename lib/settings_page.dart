@@ -33,8 +33,9 @@ class SettingsPage extends StatelessWidget {
     
     // Built-in sounds
     if (soundId == 'none') return 'None';
+    if (soundId == 'brook') return 'Brook';
+    if (soundId == 'ocean') return 'Ocean';
     if (soundId == 'rain') return 'Rain';
-    if (soundId == 'forest') return 'Forest';
     
     // Custom sounds
     try {

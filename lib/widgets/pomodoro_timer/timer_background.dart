@@ -83,7 +83,7 @@ class _TimerBackgroundState extends State<TimerBackground> {
         });
 
         // After transition animation completes, update current and schedule next
-        Future.delayed(const Duration(milliseconds: 800), () {
+        Future.delayed(const Duration(milliseconds: 1500), () {
           if (mounted) {
             setState(() {
               _currentImagePath = _nextImagePath;
@@ -168,7 +168,7 @@ class _TimerBackgroundState extends State<TimerBackground> {
                   if (_showNext && _nextImagePath != null)
                     AnimatedOpacity(
                       opacity: _showNext ? 1 : 0,
-                      duration: const Duration(milliseconds: 800),
+                      duration: const Duration(milliseconds: 1500),
                       curve: Curves.easeInOut,
                       child: Image.file(
                         File(_nextImagePath!),

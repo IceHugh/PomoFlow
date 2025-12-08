@@ -25,7 +25,7 @@ class SettingsManager {
   // Sound settings
   bool _tickSound = true;
   String _alarmSound = 'bell';
-  String _whiteNoiseSound = 'rain';
+  String _whiteNoiseSound = 'brook';
   
   // System settings
   bool _enableNotifications = true;
@@ -66,7 +66,7 @@ class SettingsManager {
     _tickSound = prefs.getBool('tickSound') ?? true;
 
     _alarmSound = prefs.getString('alarmSound') ?? 'bell';
-    _whiteNoiseSound = prefs.getString('whiteNoiseSound') ?? 'rain';
+    _whiteNoiseSound = prefs.getString('whiteNoiseSound') ?? 'brook';
     _enableNotifications = prefs.getBool('enableNotifications') ?? true;
     _alwaysOnTop = prefs.getBool('alwaysOnTop') ?? false;
     

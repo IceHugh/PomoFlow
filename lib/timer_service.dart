@@ -438,10 +438,10 @@ class TimerService with ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 50));
       
       // Check if it's a built-in sound or custom sound
-      if (soundName == 'bell' || soundName == 'digital') {
-        // Built-in sounds
-        String fileName = soundName == 'bell' ? 'alarms/bell.mp3' : 'alarms/digital.mp3';
-        await _previewPlayer.play(AssetSource('sounds/$fileName'));
+      if (soundName == 'bell' || soundName == 'beep1' || soundName == 'beep2' || 
+          soundName == 'chirps' || soundName == 'digital' || soundName == 'retro') {
+        // Built-in alarm sounds
+        await _previewPlayer.play(AssetSource('sounds/alarms/$soundName.mp3'));
       } else {
         // Custom sound - find by ID
         try {
