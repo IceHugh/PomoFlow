@@ -54,6 +54,7 @@ class TimerService with ChangeNotifier {
   
   // Sound Players
   final AudioPlayer _alarmPlayer = AudioPlayer();
+  final AudioPlayer _previewPlayer = AudioPlayer(); // Separate player for previews
 
   TimerService() {
     _loadSettings();
@@ -338,10 +339,9 @@ class TimerService with ChangeNotifier {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
-        _updateBadge(); // Update tray only, not widget
         
-        // Update widget every second for time display
-        // Android side will use state caching to avoid unnecessary redraws
+        // Update both tray and widget every second for time sync
+        _updateBadge();
         _updateWidget();
         
         // Tick sound
@@ -428,20 +428,27 @@ class TimerService with ChangeNotifier {
         return;
       }
       
-      await _alarmPlayer.stop();
+      // Stop preview player only if it's currently playing or paused
+      if (_previewPlayer.state == PlayerState.playing || 
+          _previewPlayer.state == PlayerState.paused) {
+        await _previewPlayer.stop();
+      }
+      
+      // Small delay to ensure previous operation completes
+      await Future.delayed(const Duration(milliseconds: 50));
       
       // Check if it's a built-in sound or custom sound
       if (soundName == 'bell' || soundName == 'digital') {
         // Built-in sounds
         String fileName = soundName == 'bell' ? 'alarms/bell.mp3' : 'alarms/digital.mp3';
-        await _alarmPlayer.play(AssetSource('sounds/$fileName'));
+        await _previewPlayer.play(AssetSource('sounds/$fileName'));
       } else {
         // Custom sound - find by ID
         try {
           final customSound = _alarmSoundManager.customAlarmSounds.firstWhere(
             (s) => s.id == soundName,
           );
-          await _alarmPlayer.play(DeviceFileSource(customSound.filePath));
+          await _previewPlayer.play(DeviceFileSource(customSound.filePath));
         } catch (e) {
           if (kDebugMode) print('Custom alarm sound not found, ID: $soundName');
           return;
@@ -495,8 +502,25 @@ class TimerService with ChangeNotifier {
   @override
   void dispose() {
     _timer?.cancel();
-    _alarmPlayer.dispose();
+    
+    // Stop and dispose audio players safely
+    _stopAndDisposePlayer(_alarmPlayer);
+    _stopAndDisposePlayer(_previewPlayer);
+    
     _ambientSoundManager.dispose();
     super.dispose();
+  }
+  
+  // Helper method to safely stop and dispose audio player
+  void _stopAndDisposePlayer(AudioPlayer player) {
+    try {
+      if (player.state == PlayerState.playing || 
+          player.state == PlayerState.paused) {
+        player.stop();
+      }
+      player.dispose();
+    } catch (e) {
+      if (kDebugMode) print('Error disposing player: $e');
+    }
   }
 }

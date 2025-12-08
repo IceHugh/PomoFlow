@@ -75,11 +75,13 @@ class TimerDisplay extends StatelessWidget {
                 child: Selector<TimerService, double>(
                   selector: (_, service) => service.progress,
                   builder: (context, progress, child) {
-                    return CustomPaint(
-                      painter: ProgressPainter(
-                        progress: progress,
-                        color: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.9),
-                        trackColor: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.1),
+                    return RepaintBoundary(
+                      child: CustomPaint(
+                        painter: ProgressPainter(
+                          progress: progress,
+                          color: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.9),
+                          trackColor: Color(context.select<TimerService, int>((s) => s.contentColor)).withValues(alpha: 0.1),
+                        ),
                       ),
                     );
                   },

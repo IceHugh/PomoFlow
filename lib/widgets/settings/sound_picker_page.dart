@@ -86,14 +86,25 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet> {
   @override
   void dispose() {
     _stopPreview();
-    _previewPlayer.dispose();
+    
+    // Small delay to ensure stop completes before dispose
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _previewPlayer.dispose();
+    });
+    
     super.dispose();
   }
 
   void _stopPreview() {
     _stopTimer?.cancel();
     _stopTimer = null;
-    _previewPlayer.stop();
+    
+    // Only stop if player is actually playing or paused
+    if (_previewPlayer.state == PlayerState.playing || 
+        _previewPlayer.state == PlayerState.paused) {
+      _previewPlayer.stop();
+    }
+    
     _currentPreviewId = null;
   }
 
@@ -103,6 +114,13 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet> {
 
     // Stop any current preview
     _stopPreview();
+    
+    // Small delay to ensure previous stop completes
+    await Future.delayed(const Duration(milliseconds: 50));
+    
+    // Check if widget is still mounted after async gap
+    if (!mounted) return;
+    
     _currentPreviewId = id;
 
     try {

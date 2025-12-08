@@ -146,14 +146,16 @@ class AmbientSoundManager {
   Future<void> playSound(String soundId, bool isRunning, TimerMode mode) async {
     if (isRunning && mode == TimerMode.focus) {
       if (soundId == 'none') {
-        await _whiteNoisePlayer.stop();
+        await _stopPlayerSafely();
         return;
       }
 
       try {
         // Stop current playback if playing
         if (_whiteNoisePlayer.state == PlayerState.playing) {
-          await _whiteNoisePlayer.stop();
+          await _stopPlayerSafely();
+          // Small delay to ensure stop completes
+          await Future.delayed(const Duration(milliseconds: 50));
         }
 
         // Check if it's a built-in sound or custom sound
@@ -171,23 +173,36 @@ class AmbientSoundManager {
           } catch (e) {
             if (kDebugMode) print('Custom sound not found, ID: $soundId');
             // If custom sound not found, stop playback
-            await _whiteNoisePlayer.stop();
+            await _stopPlayerSafely();
           }
         }
       } catch (e) {
         if (kDebugMode) print("Error playing white noise: $e");
       }
     } else {
-      await _whiteNoisePlayer.stop();
+      await _stopPlayerSafely();
     }
   }
 
   // Stop ambient sound
   Future<void> stopSound() async {
-    await _whiteNoisePlayer.stop();
+    await _stopPlayerSafely();
+  }
+  
+  // Helper method to safely stop the player
+  Future<void> _stopPlayerSafely() async {
+    if (_whiteNoisePlayer.state == PlayerState.playing || 
+        _whiteNoisePlayer.state == PlayerState.paused) {
+      await _whiteNoisePlayer.stop();
+    }
   }
 
   void dispose() {
+    // Stop player before disposing
+    if (_whiteNoisePlayer.state == PlayerState.playing || 
+        _whiteNoisePlayer.state == PlayerState.paused) {
+      _whiteNoisePlayer.stop();
+    }
     _whiteNoisePlayer.dispose();
   }
 }

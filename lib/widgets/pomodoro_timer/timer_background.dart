@@ -128,57 +128,59 @@ class _TimerBackgroundState extends State<TimerBackground> {
         } else if (timerService.backgroundType == 'image') {
           // Use carousel images if available
           if (selectedImages.isNotEmpty && _currentImagePath != null) {
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                // Fallback Gradient while loading
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isDarkMode 
-                         ? [const Color(0xFF2E3192), const Color(0xFF1BFFFF)]
-                         : [const Color(0xFFA1C4FD), const Color(0xFFC2E9FB)],
+            return RepaintBoundary(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Fallback Gradient while loading
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isDarkMode 
+                           ? [const Color(0xFF2E3192), const Color(0xFF1BFFFF)]
+                           : [const Color(0xFFA1C4FD), const Color(0xFFC2E9FB)],
+                      ),
                     ),
                   ),
-                ),
-                
-                // Current Image
-                Image.file(
-                  File(_currentImagePath!),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  cacheWidth: 1920, // Optimized for performance
-                  errorBuilder: (ctx, err, stack) => Container(color: Colors.black),
-                  frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                    if (wasSynchronouslyLoaded) return child;
-                    return AnimatedOpacity(
-                      opacity: frame == null ? 0 : 1,
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOut,
-                      child: child,
-                    );
-                  },
-                ),
-                
-                // Next Image (crossfade transition)
-                if (_showNext && _nextImagePath != null)
-                  AnimatedOpacity(
-                    opacity: _showNext ? 1 : 0,
-                    duration: const Duration(milliseconds: 800),
-                    curve: Curves.easeInOut,
-                    child: Image.file(
-                      File(_nextImagePath!),
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      cacheWidth: 1920,
-                      errorBuilder: (ctx, err, stack) => const SizedBox.shrink(),
-                    ),
+                  
+                  // Current Image
+                  Image.file(
+                    File(_currentImagePath!),
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    cacheWidth: 810, // 2x window width (405 * 2) for Retina displays
+                    errorBuilder: (ctx, err, stack) => Container(color: Colors.black),
+                    frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                      if (wasSynchronouslyLoaded) return child;
+                      return AnimatedOpacity(
+                        opacity: frame == null ? 0 : 1,
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOut,
+                        child: child,
+                      );
+                    },
                   ),
-              ],
+                  
+                  // Next Image (crossfade transition)
+                  if (_showNext && _nextImagePath != null)
+                    AnimatedOpacity(
+                      opacity: _showNext ? 1 : 0,
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.easeInOut,
+                      child: Image.file(
+                        File(_nextImagePath!),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        cacheWidth: 810, // 2x window width for Retina
+                        errorBuilder: (ctx, err, stack) => const SizedBox.shrink(),
+                      ),
+                    ),
+                ],
+              ),
             );
           }
           
@@ -203,7 +205,7 @@ class _TimerBackgroundState extends State<TimerBackground> {
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
-                  cacheWidth: 1920,
+                  cacheWidth: 810, // 2x window width for Retina
                   errorBuilder: (ctx, err, stack) => Container(color: Colors.black),
                   frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
                     if (wasSynchronouslyLoaded) return child;

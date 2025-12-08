@@ -46,6 +46,9 @@ class ProgressPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant ProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color || oldDelegate.trackColor != trackColor;
+    // Only repaint if progress changed by more than 1% or colors changed
+    final progressChanged = (oldDelegate.progress - progress).abs() > 0.01;
+    final colorChanged = oldDelegate.color != color || oldDelegate.trackColor != trackColor;
+    return progressChanged || colorChanged;
   }
 }
