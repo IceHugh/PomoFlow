@@ -1,10 +1,10 @@
-#define MyAppName "Rhei"
+#define MyAppName "PomoFlow"
 #ifndef MyAppVersion
 #define MyAppVersion "0.3.1"
 #endif
 #define MyAppPublisher "IceHugh"
-#define MyAppURL "https://github.com/IceHugh/rhei"
-#define MyAppExeName "rhei.exe"
+#define MyAppURL "https://github.com/IceHugh/PomoFlow"
+#define MyAppExeName "flow.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -24,7 +24,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 OutputDir=..\..\build\windows\runner\Release\Output
-OutputBaseFilename=Rhei_Setup
+OutputBaseFilename=PomoFlow_Setup
 SetupIconFile=resources\app_icon.ico
 Compression=lzma
 SolidCompression=yes

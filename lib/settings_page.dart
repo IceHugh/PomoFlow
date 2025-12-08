@@ -1,4 +1,3 @@
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +5,9 @@ import 'timer_service.dart';
 import 'widgets/glass_container.dart';
 import 'widgets/settings/glass_tile.dart';
 import 'widgets/settings/settings_pickers.dart';
+import 'widgets/settings/ambient_sound_picker_page.dart';
+import 'widgets/settings/alarm_sound_picker_page.dart';
+import 'widgets/settings/background_picker_page.dart';
 import 'main.dart' show appVersion;
 
 class SettingsPage extends StatelessWidget {
@@ -24,6 +26,27 @@ class SettingsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getAmbientSoundName(TimerService timerService) {
+    final soundId = timerService.whiteNoiseSound;
+    
+    // Built-in sounds
+    if (soundId == 'none') return 'None';
+    if (soundId == 'rain') return 'Rain';
+    if (soundId == 'forest') return 'Forest';
+    
+    // Custom sounds
+    try {
+      final customSound = timerService.customAmbientSounds.firstWhere(
+        (s) => s.id == soundId,
+      );
+      // Truncate long file names
+      final name = customSound.name;
+      return name.length > 15 ? '${name.substring(0, 12)}...' : name;
+    } catch (e) {
+      return 'Unknown';
+    }
   }
 
   @override
@@ -197,9 +220,9 @@ class SettingsPage extends StatelessWidget {
                               const Divider(height: 1, indent: 60, color: Colors.black12),
                               GlassTile(
                                 leading: const SettingsIcon(icon: CupertinoIcons.photo, color: CupertinoColors.systemPink),
-                                title: const Text('Background'),
+                                title: const Text('Background Type'),
                                 trailing: SizedBox(
-                                  width: 150,
+                                  width: 180,
                                   child: CupertinoSlidingSegmentedControl<String>(
                                     groupValue: timerService.backgroundType,
                                     padding: const EdgeInsets.all(2),
@@ -216,6 +239,21 @@ class SettingsPage extends StatelessWidget {
                                   ),
                                 ),
                               ),
+                              if (timerService.backgroundType == 'image') ...[ 
+                                const Divider(height: 1, indent: 60, color: Colors.black12),
+                                GlassTile(
+                                  leading: const SettingsIcon(icon: CupertinoIcons.photo_fill_on_rectangle_fill, color: CupertinoColors.systemBlue),
+                                  title: const Text('Manage Images'),
+                                  additionalInfo: Text(
+                                    timerService.selectedBackgroundImages.isEmpty 
+                                        ? 'No images' 
+                                        : '${timerService.selectedBackgroundImages.length} selected',
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                  trailing: const Icon(CupertinoIcons.chevron_forward, size: 18, color: CupertinoColors.systemGrey3),
+                                  onTap: () => showBackgroundImagePicker(context),
+                                ),
+                              ],
                               if (timerService.backgroundType == 'color') ...[
                                 const Divider(height: 1, indent: 60, color: Colors.black12),
                                 GlassTile(
@@ -231,28 +269,6 @@ class SettingsPage extends StatelessWidget {
                                     ),
                                   ),
                                   onTap: () => SettingsPickers.showColorPicker(context, timerService),
-                                ),
-                              ],
-                              if (timerService.backgroundType == 'image') ...[
-                                const Divider(height: 1, indent: 60, color: Colors.black12),
-                                GlassTile(
-                                  leading: const Icon(CupertinoIcons.photo_on_rectangle, color: CupertinoColors.systemGrey),
-                                  title: Text(
-                                    timerService.backgroundImagePath.isEmpty 
-                                        ? 'Select Image' 
-                                        : 'Change Image',
-                                  ),
-                                  additionalInfo: timerService.backgroundImagePath.isNotEmpty 
-                                      ? SizedBox(
-                                          width: 60, 
-                                          child: Text(
-                                            timerService.backgroundImagePath.split('/').last,
-                                            overflow: TextOverflow.ellipsis,
-                                          )
-                                        )
-                                      : null,
-                                  trailing: const Icon(CupertinoIcons.chevron_forward, size: 18, color: CupertinoColors.systemGrey3),
-                                  onTap: () => SettingsPickers.pickImage(timerService),
                                 ),
                               ],
                               const Divider(height: 1, indent: 60, color: Colors.black12),
@@ -335,23 +351,15 @@ class SettingsPage extends StatelessWidget {
                                 title: const Text('Alarm'),
                                 additionalInfo: Text(timerService.alarmSound.toUpperCase()),
                                 trailing: const Icon(CupertinoIcons.chevron_forward, size: 18, color: CupertinoColors.systemGrey3),
-                                onTap: () => SettingsPickers.showSoundPicker(
-                                  context,
-                                  timerService,
-                                  (val) => timerService.updateSettings(alarmSound: val),
-                                ),
+                                onTap: () => showAlarmSoundPicker(context),
                               ),
                               const Divider(height: 1, indent: 60, color: Colors.black12),
                               GlassTile(
                                 leading: const SettingsIcon(icon: CupertinoIcons.music_note_2, color: CupertinoColors.systemPurple),
                                 title: const Text('Ambient'),
-                                additionalInfo: Text(timerService.whiteNoiseSound.toUpperCase()),
+                                additionalInfo: Text(_getAmbientSoundName(timerService)),
                                 trailing: const Icon(CupertinoIcons.chevron_forward, size: 18, color: CupertinoColors.systemGrey3),
-                                onTap: () => SettingsPickers.showWhiteNoisePicker(
-                                  context,
-                                  timerService,
-                                  (val) => timerService.updateSettings(whiteNoiseSound: val),
-                                ),
+                                onTap: () => showAmbientSoundPicker(context),
                               ),
                             ],
                           ),

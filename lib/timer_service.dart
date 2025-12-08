@@ -3,30 +3,28 @@ import 'dart:ui';
 import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'services/tray_service.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:home_widget/home_widget.dart';
 import 'dart:io';
+import 'models/custom_ambient_sound.dart';
+import 'models/background_image.dart';
+import 'services/ambient_sound_manager.dart';
+import 'services/alarm_sound_manager.dart';
+import 'services/background_manager.dart';
+import 'services/settings_manager.dart';
+import 'services/widget_manager.dart';
 
 enum TimerMode { focus, shortBreak, longBreak }
 
 // Background Callback for HomeWidget
 @pragma('vm:entry-point')
+@pragma('vm:entry-point')
 Future<void> backgroundCallback(Uri? uri) async {
-  debugPrint("Background Callback Triggered! URI: $uri");
   if (uri?.host == 'toggle') {
-    // Try to find the main isolate port
     final SendPort? sendPort = IsolateNameServer.lookupPortByName('flow_timer_service_port');
-    debugPrint("Background Callback: Port found? ${sendPort != null}");
     if (sendPort != null) {
       sendPort.send('toggle');
-      debugPrint("Background Callback: Sent toggle message");
-    } else {
-      debugPrint("Background Callback: Port NOT found. App isolate might be dead.");
     }
   }
 }
@@ -34,76 +32,48 @@ Future<void> backgroundCallback(Uri? uri) async {
 class TimerService with ChangeNotifier {
   static const platform = MethodChannel('com.example.flow/timer');
 
+  // Services
+  final AmbientSoundManager _ambientSoundManager = AmbientSoundManager();
+  final AlarmSoundManager _alarmSoundManager = AlarmSoundManager();
+  final BackgroundManager _backgroundManager = BackgroundManager();
+  final SettingsManager _settingsManager = SettingsManager();
+  final WidgetManager _widgetManager = WidgetManager();
+
+  // Timer state
   Timer? _timer;
   int _remainingSeconds = 25 * 60;
   bool _isRunning = false;
   TimerMode _currentMode = TimerMode.focus;
+  int _cycleCount = 0;
   
   // Isolate Communication
   final ReceivePort _port = ReceivePort();
-
-  // Settings
-  int _focusMinutes = 25;
-  int _shortBreakMinutes = 5;
-  int _longBreakMinutes = 15;
-  int _cycleCount = 0;
-  bool _loopMode = true;
-  
-  String _themeMode = 'system';
-  bool _tickSound = true;
-  String _alarmSound = 'bell';
-  String _whiteNoiseSound = 'rain';
-  bool _enableNotifications = true;
-  bool _alwaysOnTop = false;
-
-  // Background Settings
-  String _backgroundType = 'default';
-  int _backgroundColor = 0xFF2196F3;
-  String _backgroundImagePath = '';
-  int _contentColor = 0xFFFFFFFF; // Default White
-  String _fontFamily = 'system';
-  double _uiOpacity = 1.0;
-  String _layoutMode = 'default';
 
   // Notifications
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   
   // Sound Players
   final AudioPlayer _alarmPlayer = AudioPlayer();
-  final AudioPlayer _whiteNoisePlayer = AudioPlayer();
 
   TimerService() {
-    debugPrint("TimerService: Initializing...");
     _loadSettings();
     _initNotifications();
-    
-    // Set up white noise loop
-    _whiteNoisePlayer.setReleaseMode(ReleaseMode.loop);
     
     // Register Port for Background Communication (Android only)
     if (Platform.isAndroid) {
       IsolateNameServer.removePortNameMapping('flow_timer_service_port');
-      bool registered = IsolateNameServer.registerPortWithName(_port.sendPort, 'flow_timer_service_port');
-      debugPrint("TimerService: Port registered? $registered");
+      IsolateNameServer.registerPortWithName(_port.sendPort, 'flow_timer_service_port');
       
       _port.listen((message) {
-        debugPrint("TimerService: Received message on port: $message");
         if (message == 'toggle') {
           toggleTimer();
         }
       });
       
-      // Register Background Callback
       HomeWidget.registerInteractivityCallback(backgroundCallback);
-      debugPrint("TimerService: Background callback registered");
-      
-      // Clear widget time on app start to show initial state
       HomeWidget.saveWidgetData<String>('time', '');
-      debugPrint("TimerService: Cleared widget time on app start");
       
-      // Listen for Widget Clicks (Legacy App Launch handling)
       HomeWidget.widgetClicked.listen((Uri? uri) {
-        debugPrint("TimerService: Widget Clicked (Legacy Stream): $uri");
         if (uri?.host == 'toggle') {
           toggleTimer();
         }
@@ -138,58 +108,47 @@ class TimerService with ChangeNotifier {
   int get totalSeconds => _getTotalSecondsForMode(_currentMode);
   double get progress => _remainingSeconds / totalSeconds;
   
-  int get focusMinutes => _focusMinutes;
-  int get shortBreakMinutes => _shortBreakMinutes;
-  int get longBreakMinutes => _longBreakMinutes;
-  bool get loopMode => _loopMode;
-  String get themeMode => _themeMode;
-  bool get tickSound => _tickSound;
-  String get alarmSound => _alarmSound;
-  String get whiteNoiseSound => _whiteNoiseSound;
-  bool get enableNotifications => _enableNotifications;
-  bool get alwaysOnTop => _alwaysOnTop;
-  String get backgroundType => _backgroundType;
-  int get backgroundColor => _backgroundColor;
-  String get backgroundImagePath => _backgroundImagePath;
-  int get contentColor => _contentColor;
-  String get fontFamily => _fontFamily;
-  double get uiOpacity => _uiOpacity;
-  String get layoutMode => _layoutMode;
-
-  // ...
+  // Settings getters (delegate to SettingsManager)
+  int get focusMinutes => _settingsManager.focusMinutes;
+  int get shortBreakMinutes => _settingsManager.shortBreakMinutes;
+  int get longBreakMinutes => _settingsManager.longBreakMinutes;
+  bool get loopMode => _settingsManager.loopMode;
+  String get themeMode => _settingsManager.themeMode;
+  bool get tickSound => _settingsManager.tickSound;
+  String get alarmSound => _settingsManager.alarmSound;
+  String get whiteNoiseSound => _settingsManager.whiteNoiseSound;
+  bool get enableNotifications => _settingsManager.enableNotifications;
+  bool get alwaysOnTop => _settingsManager.alwaysOnTop;
+  String get backgroundType => _settingsManager.backgroundType;
+  int get backgroundColor => _settingsManager.backgroundColor;
+  String get backgroundImagePath => _settingsManager.backgroundImagePath;
+  int get contentColor => _settingsManager.contentColor;
+  String get fontFamily => _settingsManager.fontFamily;
+  double get uiOpacity => _settingsManager.uiOpacity;
+  String get layoutMode => _settingsManager.layoutMode;
+  int get backgroundCarouselInterval => _settingsManager.backgroundCarouselInterval;
+  
+  // Ambient sound getters (delegate to AmbientSoundManager)
+  List<CustomAmbientSound> get customAmbientSounds => _ambientSoundManager.customAmbientSounds;
+  List<String> get hiddenSoundIds => _ambientSoundManager.hiddenSoundIds;
+  
+  // Alarm sound getters (delegate to AlarmSoundManager)
+  List<CustomAmbientSound> get customAlarmSounds => _alarmSoundManager.customAlarmSounds;
+  List<String> get hiddenAlarmSoundIds => _alarmSoundManager.hiddenSoundIds;
+  
+  // Background image getters (delegate to BackgroundManager)
+  List<BackgroundImage> get backgroundImages => _backgroundManager.backgroundImages;
+  List<BackgroundImage> get selectedBackgroundImages => _backgroundManager.selectedImages;
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    _focusMinutes = prefs.getInt('focusMinutes') ?? 25;
-    _shortBreakMinutes = prefs.getInt('shortBreakMinutes') ?? 5;
-    _longBreakMinutes = prefs.getInt('longBreakMinutes') ?? 15;
-    _loopMode = prefs.getBool('loopMode') ?? true;
-    _cycleCount = prefs.getInt('cycleCount') ?? 0;
-    _themeMode = prefs.getString('themeMode') ?? 'system';
-    _tickSound = prefs.getBool('tickSound') ?? true;
-
-    _alarmSound = prefs.getString('alarmSound') ?? 'bell';
-    _whiteNoiseSound = prefs.getString('whiteNoiseSound') ?? 'rain';
-    _enableNotifications = prefs.getBool('enableNotifications') ?? true;
-    _alwaysOnTop = prefs.getBool('alwaysOnTop') ?? false;
-    
-    _backgroundType = prefs.getString('backgroundType') ?? 'default';
-    _backgroundColor = prefs.getInt('backgroundColor') ?? 0xFF2196F3;
-    _backgroundImagePath = prefs.getString('backgroundImagePath') ?? '';
-    _contentColor = prefs.getInt('contentColor') ?? 0xFFFFFFFF;
-    _fontFamily = prefs.getString('fontFamily') ?? 'system';
-    _uiOpacity = prefs.getDouble('uiOpacity') ?? 1.0;
-    _layoutMode = prefs.getString('layoutMode') ?? 'default';
+    await _settingsManager.loadSettings();
+    await _ambientSoundManager.loadCustomSounds();
+    await _alarmSoundManager.loadCustomSounds();
+    await _backgroundManager.loadBackgroundImages();
     
     // Initialize timer with saved focus duration since we start in focus mode
     if (_currentMode == TimerMode.focus) {
-      _remainingSeconds = _focusMinutes * 60;
-    }
-
-    // Apply window settings
-    if (_alwaysOnTop) {
-      _applyAlwaysOnTop(true);
+      _remainingSeconds = _settingsManager.focusMinutes * 60;
     }
 
     _manageWhiteNoise();
@@ -215,143 +174,113 @@ class TimerService with ChangeNotifier {
     String? fontFamily,
     double? uiOpacity,
     String? layoutMode,
+    int? backgroundCarouselInterval,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (focus != null) {
-      _focusMinutes = focus;
-      await prefs.setInt('focusMinutes', focus);
-      if (_currentMode == TimerMode.focus && !_isRunning) {
-        _remainingSeconds = focus * 60;
-      }
+    await _settingsManager.updateSettings(
+      focus: focus,
+      shortBreak: shortBreak,
+      longBreak: longBreak,
+      loopMode: loopMode,
+      themeMode: themeMode,
+      tickSound: tickSound,
+      alarmSound: alarmSound,
+      whiteNoiseSound: whiteNoiseSound,
+      enableNotifications: enableNotifications,
+      alwaysOnTop: alwaysOnTop,
+      backgroundType: backgroundType,
+      backgroundColor: backgroundColor,
+      backgroundImagePath: backgroundImagePath,
+      contentColor: contentColor,
+      fontFamily: fontFamily,
+      uiOpacity: uiOpacity,
+      layoutMode: layoutMode,
+      backgroundCarouselInterval: backgroundCarouselInterval,
+    );
+    
+    // Update timer if duration changed
+    if (focus != null && _currentMode == TimerMode.focus && !_isRunning) {
+      _remainingSeconds = focus * 60;
     }
-    if (shortBreak != null) {
-      _shortBreakMinutes = shortBreak;
-      await prefs.setInt('shortBreakMinutes', shortBreak);
-      if (_currentMode == TimerMode.shortBreak && !_isRunning) {
-        _remainingSeconds = shortBreak * 60;
-      }
+    if (shortBreak != null && _currentMode == TimerMode.shortBreak && !_isRunning) {
+      _remainingSeconds = shortBreak * 60;
     }
-    if (longBreak != null) {
-      _longBreakMinutes = longBreak;
-      await prefs.setInt('longBreakMinutes', longBreak);
-      if (_currentMode == TimerMode.longBreak && !_isRunning) {
-        _remainingSeconds = longBreak * 60;
-      }
+    if (longBreak != null && _currentMode == TimerMode.longBreak && !_isRunning) {
+      _remainingSeconds = longBreak * 60;
     }
-    if (loopMode != null) {
-      _loopMode = loopMode;
-      await prefs.setBool('loopMode', loopMode);
-    }
-    if (themeMode != null) {
-      _themeMode = themeMode;
-      await prefs.setString('themeMode', themeMode);
-    }
-    if (tickSound != null) {
-      _tickSound = tickSound;
-      await prefs.setBool('tickSound', tickSound);
-    }
-
+    
+    // Preview alarm sound if changed
     if (alarmSound != null) {
-      _alarmSound = alarmSound;
-      await prefs.setString('alarmSound', alarmSound);
       previewSound(alarmSound);
     }
-    if (whiteNoiseSound != null) {
-      _whiteNoiseSound = whiteNoiseSound;
-      await prefs.setString('whiteNoiseSound', whiteNoiseSound);
-    }
-    if (enableNotifications != null) {
-      _enableNotifications = enableNotifications;
-      await prefs.setBool('enableNotifications', enableNotifications);
-    }
-    if (alwaysOnTop != null) {
-      _alwaysOnTop = alwaysOnTop;
-      await prefs.setBool('alwaysOnTop', alwaysOnTop);
-      _applyAlwaysOnTop(alwaysOnTop);
-    }
     
-    if (backgroundType != null) {
-      _backgroundType = backgroundType;
-      await prefs.setString('backgroundType', backgroundType);
-    }
-    if (backgroundColor != null) {
-      _backgroundColor = backgroundColor;
-      await prefs.setInt('backgroundColor', backgroundColor);
-    }
-    if (backgroundImagePath != null) {
-      _backgroundImagePath = backgroundImagePath;
-      await prefs.setString('backgroundImagePath', backgroundImagePath);
-    }
-    if (contentColor != null) {
-      _contentColor = contentColor;
-      await prefs.setInt('contentColor', contentColor);
-    }
-    if (fontFamily != null) {
-      _fontFamily = fontFamily;
-      await prefs.setString('fontFamily', fontFamily);
-    }
-    if (uiOpacity != null) {
-      _uiOpacity = uiOpacity;
-      await prefs.setDouble('uiOpacity', uiOpacity);
-    }
-    if (layoutMode != null) {
-      _layoutMode = layoutMode;
-      await prefs.setString('layoutMode', layoutMode);
-    }
-    
-    // Check if we need to update white noise (e.g. if we add a noise setting later)
+    // Update white noise if changed
     _manageWhiteNoise();
     
     notifyListeners();
   }
 
   Future<void> saveBackgroundImage(String sourcePath) async {
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final fileName = 'bg_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final newPath = '${appDir.path}/$fileName';
-      
-      if (_backgroundImagePath.isNotEmpty) {
-        final oldFile = File(_backgroundImagePath);
-        if (await oldFile.exists() && _backgroundImagePath.startsWith(appDir.path)) {
-           try {
-             await oldFile.delete();
-           } catch (e) {
-             if (kDebugMode) print('Error deleting old background: $e');
-           }
-        }
-      }
-
-      // Copy new file
-      final sourceFile = File(sourcePath);
-      await sourceFile.copy(newPath);
-
-      // Update settings
-      await updateSettings(backgroundType: 'image', backgroundImagePath: newPath);
-    } catch (e) {
-      if (kDebugMode) print('Error saving background image: $e');
-      await updateSettings(backgroundType: 'image', backgroundImagePath: sourcePath);
-    }
+    await _settingsManager.saveBackgroundImage(sourcePath);
+    notifyListeners();
   }
 
-  void _applyAlwaysOnTop(bool alwaysOnTop) async {
-    try {
-      await windowManager.setAlwaysOnTop(alwaysOnTop);
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error setting always on top: $e');
-      }
-    }
+  Future<void> addCustomAmbientSound(String sourcePath) async {
+    await _ambientSoundManager.addCustomSound(sourcePath);
+    notifyListeners();
   }
+
+  Future<void> deleteCustomAmbientSound(String id) async {
+    final deletedId = await _ambientSoundManager.deleteCustomSound(id);
+    
+    // If deleted sound was selected, switch to 'none'
+    if (deletedId == _settingsManager.whiteNoiseSound) {
+      await updateSettings(whiteNoiseSound: 'none');
+    }
+    
+    notifyListeners();
+  }
+
+  Future<void> addCustomAlarmSound(String sourcePath) async {
+    await _alarmSoundManager.addCustomSound(sourcePath);
+    notifyListeners();
+  }
+
+  Future<void> deleteCustomAlarmSound(String id) async {
+    final deletedId = await _alarmSoundManager.deleteCustomSound(id);
+    
+    // If deleted sound was selected, switch to 'none'
+    if (deletedId == _settingsManager.alarmSound) {
+      await updateSettings(alarmSound: 'none');
+    }
+    
+    notifyListeners();
+  }
+
+  // Background image management methods
+  Future<void> addBackgroundImage(String sourcePath) async {
+    await _backgroundManager.addBackgroundImage(sourcePath);
+    notifyListeners();
+  }
+
+  Future<void> deleteBackgroundImage(String id) async {
+    await _backgroundManager.deleteBackgroundImage(id);
+    notifyListeners();
+  }
+
+  Future<void> toggleBackgroundImageSelection(String id) async {
+    await _backgroundManager.toggleImageSelection(id);
+    notifyListeners();
+  }
+
 
   int _getTotalSecondsForMode(TimerMode mode) {
     switch (mode) {
       case TimerMode.focus:
-        return _focusMinutes * 60;
+        return _settingsManager.focusMinutes * 60;
       case TimerMode.shortBreak:
-        return _shortBreakMinutes * 60;
+        return _settingsManager.shortBreakMinutes * 60;
       case TimerMode.longBreak:
-        return _longBreakMinutes * 60;
+        return _settingsManager.longBreakMinutes * 60;
     }
   }
 
@@ -396,7 +325,7 @@ class TimerService with ChangeNotifier {
     setMode(nextMode);
     
     // If loop mode is on, we essentially "fast forward" to the next running state
-    if (_loopMode) {
+    if (_settingsManager.loopMode) {
       _startTimer();
     }
   }
@@ -416,7 +345,7 @@ class TimerService with ChangeNotifier {
         _updateWidget();
         
         // Tick sound
-        if (_tickSound) {
+        if (_settingsManager.tickSound) {
           // Use system click sound as a simple tick
           SystemSound.play(SystemSoundType.click);
         }
@@ -432,7 +361,7 @@ class TimerService with ChangeNotifier {
   void _stopTimer({required bool resetUI}) {
     _timer?.cancel();
     _isRunning = false;
-    _whiteNoisePlayer.stop(); // Stop noise
+    _ambientSoundManager.stopSound(); // Stop noise
     if (resetUI) {
       _clearBadge();
     }
@@ -445,7 +374,7 @@ class TimerService with ChangeNotifier {
     HapticFeedback.heavyImpact();
     
     // Show Notification
-    if (_enableNotifications) {
+    if (_settingsManager.enableNotifications) {
       String title = _currentMode == TimerMode.focus ? "Focus Session Complete!" : "Break Over!";
       String body = _currentMode == TimerMode.focus ? "Time to take a break." : "Ready to focus again?";
       
@@ -462,12 +391,11 @@ class TimerService with ChangeNotifier {
         0, title, body, platformChannelSpecifics);
     }
 
-    // Auto-switch logic
     // Play Completion Sound
     _playCompletionSound();
 
     // Loop / Cycle Logic
-    if (_loopMode) {
+    if (_settingsManager.loopMode) {
       if (_currentMode == TimerMode.focus) {
         _cycleCount++;
         if (_cycleCount % 4 == 0) {
@@ -483,11 +411,6 @@ class TimerService with ChangeNotifier {
         setMode(TimerMode.focus);
         _startTimer();
       }
-    } else {
-      // If not looping, we might still want to advance the mode but PAUSE?
-      // For now, standard behavior is just stop.
-      // But maybe we reset the *next* mode ready to go?
-      // Let's keep it simple: Stop.
     }
     
     notifyListeners();
@@ -501,12 +424,30 @@ class TimerService with ChangeNotifier {
 
   Future<void> previewSound(String soundName) async {
     try {
-      String fileName = 'alarms/bell.mp3';
-      if (soundName == 'digital') fileName = 'alarms/digital.mp3';
-      // Add more mapping or use soundName directly if it matches filename
+      if (soundName == 'none') {
+        return;
+      }
       
       await _alarmPlayer.stop();
-      await _alarmPlayer.play(AssetSource('sounds/$fileName'));
+      
+      // Check if it's a built-in sound or custom sound
+      if (soundName == 'bell' || soundName == 'digital') {
+        // Built-in sounds
+        String fileName = soundName == 'bell' ? 'alarms/bell.mp3' : 'alarms/digital.mp3';
+        await _alarmPlayer.play(AssetSource('sounds/$fileName'));
+      } else {
+        // Custom sound - find by ID
+        try {
+          final customSound = _alarmSoundManager.customAlarmSounds.firstWhere(
+            (s) => s.id == soundName,
+          );
+          await _alarmPlayer.play(DeviceFileSource(customSound.filePath));
+        } catch (e) {
+          if (kDebugMode) print('Custom alarm sound not found, ID: $soundName');
+          return;
+        }
+      }
+      
       HapticFeedback.heavyImpact();
     } catch (e) {
       if (kDebugMode) print("Error previewing sound: $e");
@@ -514,105 +455,48 @@ class TimerService with ChangeNotifier {
   }
 
   void _playCompletionSound() {
-    previewSound(_alarmSound);
+    previewSound(_settingsManager.alarmSound);
   }
 
   Future<void> _manageWhiteNoise() async {
-    if (_isRunning && _currentMode == TimerMode.focus) {
-      if (_whiteNoiseSound == 'none') {
-        await _whiteNoisePlayer.stop();
-        return;
-      }
-
-      try {
-         // Determine file based on selection
-         String fileName = 'ambient/rain.mp3';
-         if (_whiteNoiseSound == 'forest') fileName = 'ambient/forest.mp3';
-         
-         // Only switch if different or not playing
-         // Note: AudioPlayer doesn't easily expose "current source", so we might just play. 
-         // But re-playing might restart loop. Ideally we check if it is already playing this source. 
-         // For MPV/simple players, stopping and starting is safest to switch tracks.
-         
-         // If already playing, we might want to check if the source changed. 
-         // For now, let's just stop and play if it's supposed to be playing.
-         // A better optimization would be to track `_currentWhiteNoiseSource`.
-         
-         if (_whiteNoisePlayer.state == PlayerState.playing) {
-             // If we just changed the sound (called from updateSettings), we want to switch.
-             // But if we called this from startTimer, it might be redundant.
-             // Let's rely on stop() then play() for simplicity.
-             await _whiteNoisePlayer.stop();
-         }
-         
-         await _whiteNoisePlayer.play(AssetSource('sounds/$fileName'));
-      } catch (e) {
-         if (kDebugMode) print("Error playing white noise: $e");
-      }
-    } else {
-      await _whiteNoisePlayer.stop();
-    }
+    await _ambientSoundManager.playSound(
+      _settingsManager.whiteNoiseSound,
+      _isRunning,
+      _currentMode,
+    );
   }
 
   void _updateBadge() {
-    try {
-      String timeText = formattedTime;
-      // Update Tray Title via TrayService ONLY
-      TrayService().updateTitle(timeText);
-      // Widget update is now handled separately (every 5s or on state change)
-    } catch (e) {
-      if (kDebugMode) print("Error updating badge/tray: $e");
-    }
+    _widgetManager.updateBadge(formattedTime);
   }
 
   Future<void> _updateWidget() async {
-    try {
-      if (Platform.isAndroid) {
-        // Calculate progress (0-100)
-        int progressValue = (progress * 100).toInt();
-        await HomeWidget.saveWidgetData<int>('progress', progressValue);
-        
-        await HomeWidget.saveWidgetData<String>('time', formattedTime);
-        await HomeWidget.saveWidgetData<String>('status', _currentMode == TimerMode.focus ? 'Focusing' : 'Break');
-        
-        // Sync State
-        await HomeWidget.saveWidgetData<bool>('isRunning', _isRunning);
-        
-        // Sync timer duration settings (for widget to show initial time when stopped)
-        await HomeWidget.saveWidgetData<int>('focusMinutes', _focusMinutes);
-        await HomeWidget.saveWidgetData<int>('shortBreakMinutes', _shortBreakMinutes);
-        await HomeWidget.saveWidgetData<int>('longBreakMinutes', _longBreakMinutes);
-        
-        // Sync Styles
-        await HomeWidget.saveWidgetData<int>('contentColor', _contentColor);
-        await HomeWidget.saveWidgetData<int>('backgroundColor', _backgroundColor);
-        await HomeWidget.saveWidgetData<String>('backgroundType', _backgroundType);
-        await HomeWidget.saveWidgetData<String>('backgroundPath', _backgroundImagePath);
-
-        await HomeWidget.updateWidget(
-          name: 'TimerWidgetProvider',
-          androidName: 'TimerWidgetProvider',
-          qualifiedAndroidName: 'com.example.flow.flow.TimerWidgetProvider',
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) print("Error updating widget: $e");
-    }
+    int progressValue = (progress * 100).toInt();
+    await _widgetManager.updateWidget(
+      time: formattedTime,
+      progress: progressValue,
+      status: _currentMode == TimerMode.focus ? 'Focusing' : 'Break',
+      isRunning: _isRunning,
+      mode: _currentMode,
+      focusMinutes: _settingsManager.focusMinutes,
+      shortBreakMinutes: _settingsManager.shortBreakMinutes,
+      longBreakMinutes: _settingsManager.longBreakMinutes,
+      contentColor: _settingsManager.contentColor,
+      backgroundColor: _settingsManager.backgroundColor,
+      backgroundType: _settingsManager.backgroundType,
+      backgroundPath: _settingsManager.backgroundImagePath,
+    );
   }
 
   void _clearBadge() {
-    try {
-      // Reset tray title when cleared (stopped/reset)
-      TrayService().updateTitle(formattedTime); 
-    } catch (e) {
-       // Ignore
-    }
+    _widgetManager.clearBadge(formattedTime);
   }
+
   @override
   void dispose() {
     _timer?.cancel();
     _alarmPlayer.dispose();
-    _whiteNoisePlayer.dispose();
+    _ambientSoundManager.dispose();
     super.dispose();
   }
 }

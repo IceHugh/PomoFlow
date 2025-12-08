@@ -14,10 +14,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
     await windowManager.ensureInitialized();
+    // Modern portrait window size (9:16 ratio, standard video format)
     WindowOptions windowOptions = const WindowOptions(
-      size: Size(400, 600),
-      minimumSize: Size(400, 600),
-      maximumSize: Size(400, 600),
+      size: Size(405, 720),
+      minimumSize: Size(405, 720),
+      maximumSize: Size(405, 720),
       center: true,
       title: 'PomoFlow',
       backgroundColor: CupertinoColors.transparent,

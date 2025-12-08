@@ -385,4 +385,62 @@ class SettingsPickers {
       ),
     );
   }
+  static void showCarouselIntervalPicker(BuildContext context, TimerService timerService) {
+    // Generate valid intervals
+    final List<int> intervals = [5, 6, 10, 15, 20, 25, 30, 45, 60];
+    
+    // Ensure current value is handled
+    int initialIndex = intervals.indexOf(timerService.backgroundCarouselInterval);
+    if (initialIndex == -1) initialIndex = 1; // Default to 6s (index 1)
+
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => Container(
+        height: 250,
+        padding: const EdgeInsets.only(top: 6.0),
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    child: const Text('Cancel'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Text('Interval', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                  CupertinoButton(
+                    child: const Text('Done'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CupertinoPicker(
+                  magnification: 1.22,
+                  squeeze: 1.2,
+                  useMagnifier: true,
+                  itemExtent: 32,
+                  scrollController: FixedExtentScrollController(
+                    initialItem: initialIndex,
+                  ),
+                  onSelectedItemChanged: (int index) {
+                    timerService.updateSettings(backgroundCarouselInterval: intervals[index]);
+                  },
+                  children: intervals.map((interval) => Center(
+                    child: Text('$interval sec'),
+                  )).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
