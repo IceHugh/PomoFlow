@@ -25,7 +25,7 @@ class TrayService with TrayListener {
       items: [
         MenuItem(
           key: 'show_window',
-          label: 'Show PomoFlow',
+          label: 'Show Rhei',
         ),
         MenuItem.separator(),
         MenuItem(

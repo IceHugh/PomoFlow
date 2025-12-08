@@ -20,7 +20,7 @@ void main() async {
       minimumSize: Size(405, 720),
       maximumSize: Size(405, 720),
       center: true,
-      title: 'PomoFlow',
+      title: 'Rhei',
       backgroundColor: CupertinoColors.transparent,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.hidden,
@@ -89,7 +89,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
         }
 
         return CupertinoApp(
-          title: 'PomoFlow',
+          title: 'Rhei',
           theme: CupertinoThemeData(
             primaryColor: CupertinoColors.activeBlue,
             brightness: brightness, 

@@ -1,7 +1,7 @@
 # Project Context: Flow Workspace
 
 ## Project Overview
-**PomoFlow** is a cross-platform Pomodoro timer application built with Flutter. It focuses on a modern, high-performance user experience featuring a Glassmorphism UI design.
+**Rhei** is a cross-platform Pomodoro timer application built with Flutter. It focuses on a modern, high-performance user experience featuring a Glassmorphism UI design.
 
 **Key Features:**
 - **Pomodoro Timer**: Core focus/break timer functionality.

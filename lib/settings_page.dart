@@ -390,7 +390,7 @@ class SettingsPage extends StatelessWidget {
                         const SizedBox(height: 30),
                         Center(
                           child: Text(
-                            'PomoFlow $appVersion',
+                            'Rhei $appVersion',
                             style: TextStyle(
                               color: CupertinoColors.secondaryLabel.resolveFrom(context),
                               fontSize: 13,

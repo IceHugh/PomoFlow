@@ -60,8 +60,8 @@
 
 1.  **Clone the repository:**
     ```bash
-    git clone git@github.com:IceHugh/PomoFlow.git
-    cd pomoflow
+    git clone git@github.com:IceHugh/rhei.git
+    cd rhei
     ```
 
 2.  **Install dependencies:**
@@ -96,14 +96,14 @@ flutter analyze
 ## ⚠️ Troubleshooting
 
 ### macOS: "App is damaged" or "Unverified Developer"
-If you see a warning that "PomoFlow cannot be opened because Apple cannot check it for malicious software":
+If you see a warning that "Rhei cannot be opened because Apple cannot check it for malicious software":
 
 1.  Open **System Settings** > **Privacy & Security**.
-2.  Scroll down to the security section and click **"Open Anyway"** for PomoFlow.
+2.  Scroll down to the security section and click **"Open Anyway"** for Rhei.
 
 Alternatively, running this command in Terminal will verify the app:
 ```bash
-xattr -d com.apple.quarantine /path/to/PomoFlow.app
+xattr -d com.apple.quarantine /path/to/Rhei.app
 ```
 
 ## 📄 License
