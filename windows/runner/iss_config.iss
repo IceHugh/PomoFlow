@@ -1,6 +1,6 @@
 #define MyAppName "Rhei"
 #ifndef MyAppVersion
-#define MyAppVersion "0.4.2"
+#define MyAppVersion "0.4.3"
 #endif
 #define MyAppPublisher "IceHugh"
 #define MyAppURL "https://github.com/IceHugh/rhei"
