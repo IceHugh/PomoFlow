@@ -429,7 +429,11 @@ class TimerService with ChangeNotifier, WidgetsBindingObserver {
         _startTimer();
       } else {
         // Break done -> Back to Focus
-        setMode(TimerMode.focus);
+        // Don't use setMode() here as it calls _stopTimer internally
+        // Instead, directly update the mode and remaining time
+        _currentMode = TimerMode.focus;
+        _remainingSeconds = _getTotalSecondsForMode(TimerMode.focus);
+        _updateBadge();
         _startTimer();
       }
     }

@@ -17,9 +17,15 @@ class TrayService with TrayListener {
     await trayManager.destroy(); // Cleanup any existing icon (helper for hot restart)
     
     // Must set icon first, then title will show next to it
-    await trayManager.setIcon(
-      Platform.isMacOS ? 'assets/images/tray_icon.png' : 'assets/images/logo.png',
-    );
+    String iconPath;
+    if (Platform.isWindows) {
+      iconPath = 'windows/runner/resources/tray_icon.ico';
+    } else if (Platform.isMacOS) {
+      iconPath = 'assets/images/tray_icon.png';
+    } else {
+      iconPath = 'assets/images/logo.png';
+    }
+    await trayManager.setIcon(iconPath);
     
     Menu menu = Menu(
       items: [
