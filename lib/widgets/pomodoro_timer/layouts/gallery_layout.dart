@@ -6,6 +6,7 @@ import '../../../timer_service.dart';
 import '../top_bar.dart';
 import 'gallery_controls.dart';
 import '../timer_picker_sheet.dart';
+import '../cycle_indicator.dart';
 
 class GalleryLayout extends StatelessWidget {
   const GalleryLayout({super.key});
@@ -76,7 +77,9 @@ class GalleryLayout extends StatelessWidget {
                       );
                     },
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+                  const Center(child: CycleIndicator()),
+                  const SizedBox(height: 16),
                   // Controls (Scaled down slightly if needed, or normal)
                   // Using Transform.scale to make it slightly more compact if 'very low' height is needed
                   const GalleryControls(),

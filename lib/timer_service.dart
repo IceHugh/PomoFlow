@@ -142,6 +142,7 @@ class TimerService with ChangeNotifier, WidgetsBindingObserver {
   // Alarm sound getters (delegate to AlarmSoundManager)
   List<CustomAmbientSound> get customAlarmSounds => _alarmSoundManager.customAlarmSounds;
   List<String> get hiddenAlarmSoundIds => _alarmSoundManager.hiddenSoundIds;
+  int get cycleCount => _cycleCount;
   
   // Background image getters (delegate to BackgroundManager)
   List<BackgroundImage> get backgroundImages => _backgroundManager.backgroundImages;

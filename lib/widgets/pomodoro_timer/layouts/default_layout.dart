@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import '../top_bar.dart';
 import '../timer_display.dart';
 import '../timer_controls.dart';
+import '../cycle_indicator.dart';
 
 class DefaultLayout extends StatelessWidget {
   const DefaultLayout({super.key});
@@ -28,7 +29,9 @@ class DefaultLayout extends StatelessWidget {
                       children: [
                         const SizedBox(height: 10),
                         TimerDisplay(circleSize: circleSize),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 20),
+                        const CycleIndicator(),
+                        const SizedBox(height: 20),
                         const TimerControls(),
                         const SizedBox(height: 20),
                       ],
