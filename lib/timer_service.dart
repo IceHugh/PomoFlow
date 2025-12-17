@@ -15,6 +15,8 @@ import 'services/alarm_sound_manager.dart';
 import 'services/background_manager.dart';
 import 'services/settings_manager.dart';
 import 'services/widget_manager.dart';
+import 'services/stats_service.dart';
+import 'models/focus_session.dart';
 
 enum TimerMode { focus, shortBreak, longBreak }
 
@@ -439,6 +441,18 @@ class TimerService with ChangeNotifier, WidgetsBindingObserver {
       }
     }
     
+    // Save Statistics if Focus Mode completed
+    if (_currentMode == TimerMode.focus) {
+      try {
+        await StatsService().saveSession(FocusSession(
+          startTime: DateTime.now().subtract(Duration(minutes: _settingsManager.focusMinutes)),
+          durationMinutes: _settingsManager.focusMinutes,
+        ));
+      } catch (e) {
+        if (kDebugMode) print("Error saving stats: $e");
+      }
+    }
+
     notifyListeners();
   }
 
