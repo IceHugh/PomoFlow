@@ -30,6 +30,7 @@ class SettingsManager {
   // System settings
   bool _enableNotifications = true;
   bool _alwaysOnTop = false;
+  bool _fullscreenBreakOnDesktop = false;
   
   // Getters
   int get focusMinutes => _focusMinutes;
@@ -53,6 +54,7 @@ class SettingsManager {
   
   bool get enableNotifications => _enableNotifications;
   bool get alwaysOnTop => _alwaysOnTop;
+  bool get fullscreenBreakOnDesktop => _fullscreenBreakOnDesktop;
 
   // Load all settings from SharedPreferences
   Future<void> loadSettings() async {
@@ -69,6 +71,7 @@ class SettingsManager {
     _whiteNoiseSound = prefs.getString('whiteNoiseSound') ?? 'brook';
     _enableNotifications = prefs.getBool('enableNotifications') ?? true;
     _alwaysOnTop = prefs.getBool('alwaysOnTop') ?? false;
+    _fullscreenBreakOnDesktop = prefs.getBool('fullscreenBreakOnDesktop') ?? false;
     
     _backgroundType = prefs.getString('backgroundType') ?? 'default';
     _backgroundColor = prefs.getInt('backgroundColor') ?? 0xFF2196F3;
@@ -97,6 +100,7 @@ class SettingsManager {
     String? whiteNoiseSound,
     bool? enableNotifications,
     bool? alwaysOnTop,
+    bool? fullscreenBreakOnDesktop,
     String? backgroundType,
     int? backgroundColor,
     String? backgroundImagePath,
@@ -148,6 +152,10 @@ class SettingsManager {
       _alwaysOnTop = alwaysOnTop;
       await prefs.setBool('alwaysOnTop', alwaysOnTop);
       _applyAlwaysOnTop(alwaysOnTop);
+    }
+    if (fullscreenBreakOnDesktop != null) {
+      _fullscreenBreakOnDesktop = fullscreenBreakOnDesktop;
+      await prefs.setBool('fullscreenBreakOnDesktop', fullscreenBreakOnDesktop);
     }
     if (backgroundType != null) {
       _backgroundType = backgroundType;

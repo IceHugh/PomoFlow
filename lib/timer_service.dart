@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:window_manager/window_manager.dart';
 import 'dart:io';
 import 'models/custom_ambient_sound.dart';
 import 'models/background_image.dart';
@@ -136,6 +137,7 @@ class TimerService with ChangeNotifier, WidgetsBindingObserver {
   double get uiOpacity => _settingsManager.uiOpacity;
   String get layoutMode => _settingsManager.layoutMode;
   int get backgroundCarouselInterval => _settingsManager.backgroundCarouselInterval;
+  bool get fullscreenBreakOnDesktop => _settingsManager.fullscreenBreakOnDesktop;
   
   // Ambient sound getters (delegate to AmbientSoundManager)
   List<CustomAmbientSound> get customAmbientSounds => _ambientSoundManager.customAmbientSounds;
@@ -200,6 +202,7 @@ class TimerService with ChangeNotifier, WidgetsBindingObserver {
     double? uiOpacity,
     String? layoutMode,
     int? backgroundCarouselInterval,
+    bool? fullscreenBreakOnDesktop,
   }) async {
     await _settingsManager.updateSettings(
       focus: focus,
@@ -220,6 +223,7 @@ class TimerService with ChangeNotifier, WidgetsBindingObserver {
       uiOpacity: uiOpacity,
       layoutMode: layoutMode,
       backgroundCarouselInterval: backgroundCarouselInterval,
+      fullscreenBreakOnDesktop: fullscreenBreakOnDesktop,
     );
     
     // Update timer if duration changed
@@ -238,8 +242,10 @@ class TimerService with ChangeNotifier, WidgetsBindingObserver {
       previewSound(alarmSound);
     }
     
-    // Update white noise if changed
-    _manageWhiteNoise();
+    // Update white noise only if whiteNoiseSound setting changed
+    if (whiteNoiseSound != null) {
+      _manageWhiteNoise();
+    }
     
     notifyListeners();
   }
@@ -309,11 +315,37 @@ class TimerService with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  void setMode(TimerMode mode) {
+  void setMode(TimerMode mode) async {
     _stopTimer(resetUI: false);
     _currentMode = mode;
     _remainingSeconds = _getTotalSecondsForMode(mode);
     _updateBadge();
+    
+    // Handle Window Fullscreen Logic
+    if (Platform.isMacOS || Platform.isWindows) {
+      bool shouldBeFullscreen = false;
+      
+      // If setting is enabled and entering a break mode
+      if (_settingsManager.fullscreenBreakOnDesktop) {
+        if (mode == TimerMode.shortBreak || mode == TimerMode.longBreak) {
+          shouldBeFullscreen = true;
+        }
+      }
+      
+      try {
+        bool isAlreadyFullscreen = await windowManager.isFullScreen();
+        if (shouldBeFullscreen && !isAlreadyFullscreen) {
+          await windowManager.setFullScreen(true);
+        } else if (!shouldBeFullscreen && isAlreadyFullscreen) {
+          await windowManager.setFullScreen(false);
+          // Restore window size to default portrait standard if needed
+          // Or window_manager usually handles restoration to previous size
+        }
+      } catch (e) {
+        if (kDebugMode) print('Error toggling fullscreen: $e');
+      }
+    }
+
     notifyListeners();
   }
 

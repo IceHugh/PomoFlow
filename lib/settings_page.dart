@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'timer_service.dart';
@@ -384,6 +385,20 @@ class SettingsPage extends StatelessWidget {
                                   ),
                                 ),
                               ),
+                              if (Platform.isMacOS || Platform.isWindows) ...[
+                                const Divider(height: 1, indent: 60, color: Colors.black12),
+                                GlassTile(
+                                  leading: const SettingsIcon(icon: CupertinoIcons.fullscreen, color: CupertinoColors.systemIndigo),
+                                  title: const Text('Fullscreen Break'),
+                                  trailing: Transform.scale(
+                                    scale: 0.8,
+                                    child: CupertinoSwitch(
+                                      value: timerService.fullscreenBreakOnDesktop,
+                                      onChanged: (value) => timerService.updateSettings(fullscreenBreakOnDesktop: value),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),

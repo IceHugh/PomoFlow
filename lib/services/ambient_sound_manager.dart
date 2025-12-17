@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -8,7 +9,18 @@ import '../models/custom_ambient_sound.dart';
 import '../timer_service.dart';
 
 class AmbientSoundManager {
-  final AudioPlayer _whiteNoisePlayer = AudioPlayer();
+  // Dual-buffer players for seamless looping
+  final AudioPlayer _player1 = AudioPlayer();
+  final AudioPlayer _player2 = AudioPlayer();
+  
+  // Track current sound and playback state
+  String? _currentSoundId;
+  bool _isPlaying = false;
+  
+  // Subscriptions for player events
+  StreamSubscription? _player1Subscription;
+  StreamSubscription? _player2Subscription;
+  
   List<CustomAmbientSound> _customAmbientSounds = [];
   
   List<String> _hiddenSoundIds = [];
@@ -142,69 +154,148 @@ class AmbientSoundManager {
     }
   }
 
-  // Play ambient sound
+  // Play ambient sound with seamless looping
   Future<void> playSound(String soundId, bool isRunning, TimerMode mode) async {
     if (isRunning) {
       if (soundId == 'none') {
-        await _stopPlayerSafely();
+        await _stopPlayback();
+        return;
+      }
+
+      // If already playing the same sound, don't restart
+      if (_isPlaying && _currentSoundId == soundId) {
         return;
       }
 
       try {
-        // Stop current playback if playing
-        if (_whiteNoisePlayer.state == PlayerState.playing) {
-          await _stopPlayerSafely();
-          // Small delay to ensure stop completes
-          await Future.delayed(const Duration(milliseconds: 50));
-        }
+        // Stop current playback if playing different sound
+        await _stopPlayback();
+        
+        // Small delay to ensure stop completes
+        await Future.delayed(const Duration(milliseconds: 100));
 
-        // Set loop mode for ambient sounds
-        await _whiteNoisePlayer.setReleaseMode(ReleaseMode.loop);
+        _currentSoundId = soundId;
+        _isPlaying = true;
 
-        // Check if it's a built-in sound or custom sound
-        if (soundId == 'rain' || soundId == 'brook' || soundId == 'ocean') {
-          // Built-in sounds
-          await _whiteNoisePlayer.play(AssetSource('sounds/ambient/$soundId.mp3'));
-        } else {
-          // Custom sound - find by ID
-          try {
-            final customSound = _customAmbientSounds.firstWhere(
-              (s) => s.id == soundId,
-            );
-            await _whiteNoisePlayer.play(DeviceFileSource(customSound.filePath));
-          } catch (e) {
-            if (kDebugMode) print('Custom sound not found, ID: $soundId');
-            // If custom sound not found, stop playback
-            await _stopPlayerSafely();
-          }
-        }
+        // Start seamless looping with dual-buffer technique
+        await _startSeamlessLoop(soundId);
+        
       } catch (e) {
         if (kDebugMode) print("Error playing white noise: $e");
+        _isPlaying = false;
+        _currentSoundId = null;
       }
     } else {
-      await _stopPlayerSafely();
+      await _stopPlayback();
     }
+  }
+
+  // Start seamless looping using dual-buffer technique
+  Future<void> _startSeamlessLoop(String soundId) async {
+    // Configure both players for single playback (not loop)
+    await _player1.setReleaseMode(ReleaseMode.release);
+    await _player2.setReleaseMode(ReleaseMode.release);
+    
+    // Set volume to full
+    await _player1.setVolume(1.0);
+    await _player2.setVolume(1.0);
+
+    // Get the audio source
+    Source audioSource = await _getAudioSource(soundId);
+    
+    // Start first player
+    await _player1.play(audioSource);
+
+    // Listen for completion events to trigger next playback
+    _player1Subscription?.cancel();
+    _player2Subscription?.cancel();
+    
+    _player1Subscription = _player1.onPlayerComplete.listen((_) async {
+      if (!_isPlaying || _currentSoundId != soundId) return;
+      
+      // When player1 completes, start player2
+      try {
+        Source source = await _getAudioSource(soundId);
+        await _player2.play(source);
+      } catch (e) {
+        if (kDebugMode) print("Error in player1 completion handler: $e");
+      }
+    });
+
+    _player2Subscription = _player2.onPlayerComplete.listen((_) async {
+      if (!_isPlaying || _currentSoundId != soundId) return;
+      
+      // When player2 completes, start player1
+      try {
+        Source source = await _getAudioSource(soundId);
+        await _player1.play(source);
+      } catch (e) {
+        if (kDebugMode) print("Error in player2 completion handler: $e");
+      }
+    });
+  }
+
+  // Get audio source for a sound ID
+  Future<Source> _getAudioSource(String soundId) async {
+    // Check if it's a built-in sound or custom sound
+    if (soundId == 'rain' || soundId == 'brook' || soundId == 'ocean') {
+      // Built-in sounds
+      return AssetSource('sounds/ambient/$soundId.mp3');
+    } else {
+      // Custom sound - find by ID
+      final customSound = _customAmbientSounds.firstWhere(
+        (s) => s.id == soundId,
+        orElse: () => throw Exception('Custom sound not found: $soundId'),
+      );
+      return DeviceFileSource(customSound.filePath);
+    }
+  }
+
+  // Stop playback
+  Future<void> _stopPlayback() async {
+    _isPlaying = false;
+    _currentSoundId = null;
+    
+    // Cancel subscriptions
+    await _player1Subscription?.cancel();
+    await _player2Subscription?.cancel();
+    _player1Subscription = null;
+    _player2Subscription = null;
+    
+    // Stop both players
+    await _stopPlayerSafely(_player1);
+    await _stopPlayerSafely(_player2);
   }
 
   // Stop ambient sound
   Future<void> stopSound() async {
-    await _stopPlayerSafely();
+    await _stopPlayback();
   }
   
-  // Helper method to safely stop the player
-  Future<void> _stopPlayerSafely() async {
-    if (_whiteNoisePlayer.state == PlayerState.playing || 
-        _whiteNoisePlayer.state == PlayerState.paused) {
-      await _whiteNoisePlayer.stop();
+  // Helper method to safely stop a specific player
+  Future<void> _stopPlayerSafely(AudioPlayer player) async {
+    if (player.state == PlayerState.playing || 
+        player.state == PlayerState.paused) {
+      await player.stop();
     }
   }
 
   void dispose() {
-    // Stop player before disposing
-    if (_whiteNoisePlayer.state == PlayerState.playing || 
-        _whiteNoisePlayer.state == PlayerState.paused) {
-      _whiteNoisePlayer.stop();
+    // Cancel subscriptions
+    _player1Subscription?.cancel();
+    _player2Subscription?.cancel();
+    
+    // Stop and dispose both players
+    if (_player1.state == PlayerState.playing || 
+        _player1.state == PlayerState.paused) {
+      _player1.stop();
     }
-    _whiteNoisePlayer.dispose();
+    _player1.dispose();
+    
+    if (_player2.state == PlayerState.playing || 
+        _player2.state == PlayerState.paused) {
+      _player2.stop();
+    }
+    _player2.dispose();
   }
 }
